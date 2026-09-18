@@ -6,7 +6,7 @@ import { SplitPage }    from './pages/Split/SplitPage';
 import { SessionPage }  from './pages/Session/SessionPage';
 import { HistoryPage }  from './pages/History/HistoryPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
-import { MerchantProfile } from './types';
+import type { MerchantProfile } from './types';
 
 // Check if merchant is set up
 function getProfile(): MerchantProfile | null {
