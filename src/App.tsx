@@ -1,22 +1,46 @@
-import { Activity } from 'lucide-react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { SetupPage }    from './pages/Setup/SetupPage';
+import { HomePage }     from './pages/Home/HomePage';
+import { SplitPage }    from './pages/Split/SplitPage';
+import { SessionPage }  from './pages/Session/SessionPage';
+import { HistoryPage }  from './pages/History/HistoryPage';
+import { SettingsPage } from './pages/Settings/SettingsPage';
+import { MerchantProfile } from './types';
 
-function App() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50">
-      <div className="bg-white p-8 rounded-2xl shadow-xl text-center max-w-md w-full border border-slate-100">
-        <div className="mx-auto bg-primary-100 text-primary-600 h-16 w-16 rounded-full flex items-center justify-center mb-6 shadow-inner">
-          <Activity size={32} strokeWidth={2.5} />
-        </div>
-        <h1 className="text-3xl font-bold text-slate-800 mb-3 tracking-tight">UPI Flow</h1>
-        <p className="text-slate-500 mb-8 leading-relaxed">
-          The scaffolding is complete! Tailwind CSS is working perfectly, and all dependencies are installed.
-        </p>
-        <button className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-xl w-full transition-all duration-200 active:scale-95 shadow-md hover:shadow-lg">
-          Zapp Zapp! ⚡️
-        </button>
-      </div>
-    </div>
-  )
+// Check if merchant is set up
+function getProfile(): MerchantProfile | null {
+  try {
+    const raw = localStorage.getItem('merchant_profile');
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
 }
 
-export default App;
+const RequireSetup: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const profile = getProfile();
+  return profile ? <>{children}</> : <Navigate to="/setup" replace />;
+};
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      {/* Full-height background with subtle gradient */}
+      <div
+        style={{
+          minHeight: '100dvh',
+          background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.15) 0%, transparent 70%), #080C18',
+        }}
+      >
+        <Routes>
+          <Route path="/setup" element={<SetupPage />} />
+          <Route path="/" element={<RequireSetup><HomePage /></RequireSetup>} />
+          <Route path="/split" element={<RequireSetup><SplitPage /></RequireSetup>} />
+          <Route path="/session/new" element={<RequireSetup><SessionPage /></RequireSetup>} />
+          <Route path="/history" element={<RequireSetup><HistoryPage /></RequireSetup>} />
+          <Route path="/settings" element={<RequireSetup><SettingsPage /></RequireSetup>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
+  );
+}
