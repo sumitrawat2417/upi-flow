@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { TopBar } from '../../components/ui/TopBar';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import {
+import type {
   PaymentSession, Payment, SplitResult, MerchantProfile, AppSettings,
 } from '../../types';
 import {

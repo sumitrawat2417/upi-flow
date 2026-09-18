@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { TopBar } from '../../components/ui/TopBar';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { MerchantProfile, AppSettings } from '../../types';
+import type { MerchantProfile, AppSettings } from '../../types';
 import { formatAmount } from '../../core/splitter';
 
 export const SettingsPage: React.FC = () => {

@@ -1,4 +1,4 @@
-import { SplitResult } from '../../types';
+import type { SplitResult } from '../../types';
 
 /**
  * Generates a short random ID like "A72K"

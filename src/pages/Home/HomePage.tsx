@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { History, Settings, Delete, ArrowRight } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { MerchantProfile, AppSettings } from '../../types';
+import type { MerchantProfile, AppSettings } from '../../types';
 import { formatAmount } from '../../core/splitter';
 
 const KEYS = ['1','2','3','4','5','6','7','8','9','.','0','⌫'];

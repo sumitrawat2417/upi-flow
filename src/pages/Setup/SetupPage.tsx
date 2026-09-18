@@ -4,7 +4,7 @@ import { Building2, AtSign, ArrowRight } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { MerchantProfile } from '../../types';
+import type { MerchantProfile } from '../../types';
 import { generateShortId } from '../../core/splitter';
 
 export const SetupPage: React.FC = () => {

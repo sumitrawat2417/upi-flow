@@ -1,5 +1,5 @@
 import React from 'react';
-import { PaymentStatus, SessionStatus } from '../../types';
+import type { PaymentStatus, SessionStatus } from '../../types';
 import { CheckCircle, Clock, Lock, Zap } from 'lucide-react';
 
 type BadgeVariant = PaymentStatus | SessionStatus | 'info';

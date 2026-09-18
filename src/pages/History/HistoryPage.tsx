@@ -3,7 +3,7 @@ import { ChevronDown, ChevronUp, CheckCircle2, Clock } from 'lucide-react';
 import { TopBar } from '../../components/ui/TopBar';
 import { Badge } from '../../components/ui/Badge';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { PaymentSession } from '../../types';
+import type { PaymentSession } from '../../types';
 import { formatAmount } from '../../core/splitter';
 
 function formatDate(ts: number): string {

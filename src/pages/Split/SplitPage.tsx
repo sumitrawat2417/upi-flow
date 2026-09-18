@@ -5,7 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { TopBar } from '../../components/ui/TopBar';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import { AppSettings, SplitResult } from '../../types';
+import type { AppSettings, SplitResult } from '../../types';
 import { computeSplits, formatAmount } from '../../core/splitter';
 
 const modeLabels: Record<string, string> = {
