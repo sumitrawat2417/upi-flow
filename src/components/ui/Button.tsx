@@ -20,7 +20,7 @@ const variantStyles: Record<Variant, string> = {
     'active:scale-[0.97] active:bg-amber-500',
     'shadow-[0_1px_16px_rgba(245,158,11,0.3)]',
     'hover:shadow-[0_1px_20px_rgba(245,158,11,0.45)]',
-    'disabled:shadow-none',
+    'disabled:!bg-white/[0.04] disabled:!text-slate-500 disabled:!border-transparent disabled:!shadow-none',
   ].join(' '),
 
   secondary: [

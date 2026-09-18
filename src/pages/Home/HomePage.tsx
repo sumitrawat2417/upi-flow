@@ -83,8 +83,8 @@ export const HomePage: React.FC = () => {
       </header>
 
       {/* Amount display */}
-      <div className="flex flex-col items-center px-6 pt-8 pb-4 flex-1">
-        <p className="label-sm mb-6">Amount to collect</p>
+      <div className="flex flex-col items-center justify-center px-6 flex-1 pb-4">
+        <p className="label-sm mb-4">Amount to collect</p>
 
         {/* The big number */}
         <div className="relative mb-3">

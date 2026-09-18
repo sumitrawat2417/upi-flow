@@ -146,8 +146,8 @@
 
   /* ── Amount display ── */
   .amount-display {
-    font-size: clamp(2.75rem, 11vw, 4rem);
-    font-weight: 800;
+    font-size: clamp(3rem, 12vw, 4.5rem);
+    font-weight: 700;
     letter-spacing: -0.04em;
     line-height: 1;
     font-variant-numeric: tabular-nums;
@@ -165,32 +165,29 @@
 
   /* ── Numpad key ── */
   .key-btn {
-    aspect-ratio: 1;
-    border-radius: 18px;
+    height: 68px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
-    font-weight: 500;
+    font-size: 1.5rem;
+    font-weight: 400;
     color: var(--color-text-primary);
-    background: rgba(15,23,42,0.5);
-    border: 1px solid rgba(255,255,255,0.055);
+    background: transparent;
+    border: none;
     cursor: pointer;
     user-select: none;
-    transition: background 80ms ease, border-color 80ms ease, transform 80ms ease;
+    transition: background 100ms ease, transform 100ms ease;
     -webkit-tap-highlight-color: transparent;
-    letter-spacing: -0.01em;
   }
 
   .key-btn:hover {
-    background: rgba(245,158,11,0.07);
-    border-color: rgba(245,158,11,0.18);
+    background: rgba(255,255,255,0.03);
   }
 
   .key-btn:active {
     transform: scale(0.92);
-    background: rgba(245,158,11,0.12);
-    border-color: rgba(245,158,11,0.3);
+    background: rgba(255,255,255,0.08);
   }
 
   /* ── Badges ── */
