@@ -25,12 +25,7 @@ export default function App() {
   return (
     <BrowserRouter>
       {/* Full-height background with subtle gradient */}
-      <div
-        style={{
-          minHeight: '100dvh',
-          background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,0.15) 0%, transparent 70%), #080C18',
-        }}
-      >
+      <div className="min-h-dvh">
         <Routes>
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/" element={<RequireSetup><HomePage /></RequireSetup>} />

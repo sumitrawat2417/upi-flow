@@ -10,15 +10,14 @@ import { generateShortId } from '../../core/splitter';
 export const SetupPage: React.FC = () => {
   const navigate = useNavigate();
   const [, setProfile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
-
   const [businessName, setBusinessName] = useState('');
-  const [upiId, setUpiId] = useState('');
-  const [errors, setErrors] = useState<{ businessName?: string; upiId?: string }>({});
+  const [upiId, setUpiId]               = useState('');
+  const [errors, setErrors]             = useState<{ businessName?: string; upiId?: string }>({});
 
-  const validate = (): boolean => {
+  const validate = () => {
     const next: typeof errors = {};
     if (!businessName.trim()) next.businessName = 'Business name is required.';
-    if (!upiId.trim()) next.upiId = 'UPI ID is required.';
+    if (!upiId.trim())        next.upiId = 'UPI ID is required.';
     else if (!upiId.includes('@')) next.upiId = 'Enter a valid UPI ID (e.g. name@bank)';
     setErrors(next);
     return Object.keys(next).length === 0;
@@ -26,97 +25,117 @@ export const SetupPage: React.FC = () => {
 
   const handleSave = () => {
     if (!validate()) return;
-    const profile: MerchantProfile = {
+    setProfile({
       id: generateShortId(),
       businessName: businessName.trim(),
       upiId: upiId.trim().toLowerCase(),
       createdAt: Date.now(),
-    };
-    setProfile(profile);
+    });
     navigate('/');
   };
 
   return (
-    <div className="app-shell fade-in">
-      {/* Hero area */}
-      <div className="flex flex-col items-center justify-center px-6 pt-20 pb-10">
-        {/* Abstract graphic */}
-        <div className="relative w-24 h-24 mb-8">
-          <div className="absolute inset-0 rounded-3xl bg-indigo-500/20 blur-xl" />
-          <div className="relative w-24 h-24 rounded-3xl glass flex items-center justify-center glow-primary">
-            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="4" y="4" width="14" height="14" rx="3" fill="#6366f1" fillOpacity="0.9"/>
-              <rect x="22" y="4" width="14" height="14" rx="3" fill="#6366f1" fillOpacity="0.5"/>
-              <rect x="4" y="22" width="14" height="14" rx="3" fill="#6366f1" fillOpacity="0.5"/>
-              <rect x="26" y="26" width="6" height="6" rx="1.5" fill="#6366f1" fillOpacity="0.9"/>
-              <rect x="22" y="22" width="6" height="6" rx="1.5" fill="#6366f1" fillOpacity="0.5"/>
-              <rect x="30" y="22" width="6" height="6" rx="1.5" fill="#6366f1" fillOpacity="0.3"/>
-              <rect x="22" y="30" width="6" height="6" rx="1.5" fill="#6366f1" fillOpacity="0.3"/>
+    <div className="app-shell fade-in" style={{ background: 'none' }}>
+      {/* Top noise / brand area */}
+      <div className="relative px-6 pt-16 pb-8 flex flex-col items-start">
+        {/* Accent glow blob */}
+        <div
+          className="absolute top-0 right-0 w-56 h-56 pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)',
+            filter: 'blur(24px)',
+          }}
+        />
+
+        {/* Wordmark + icon */}
+        <div className="flex items-center gap-3 mb-8 relative z-10">
+          <div
+            className="w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+              boxShadow: '0 4px 16px rgba(245,158,11,0.35)',
+            }}
+          >
+            {/* QR Mark SVG */}
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+              <rect x="2" y="2" width="8" height="8" rx="1.5" fill="#0F172A" fillOpacity="0.9"/>
+              <rect x="12" y="2" width="8" height="8" rx="1.5" fill="#0F172A" fillOpacity="0.5"/>
+              <rect x="2" y="12" width="8" height="8" rx="1.5" fill="#0F172A" fillOpacity="0.5"/>
+              <rect x="14" y="14" width="3.5" height="3.5" rx="0.75" fill="#0F172A"/>
+              <rect x="12" y="12" width="3.5" height="3.5" rx="0.75" fill="#0F172A" fillOpacity="0.5"/>
+              <rect x="16.5" y="12" width="3.5" height="3.5" rx="0.75" fill="#0F172A" fillOpacity="0.3"/>
+              <rect x="12" y="16.5" width="3.5" height="3.5" rx="0.75" fill="#0F172A" fillOpacity="0.3"/>
             </svg>
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-[-0.03em] text-slate-100">UPI Flow</h1>
+            <p className="text-xs font-mono text-slate-500 mt-0.5">v1.0 · Merchant Edition</p>
           </div>
         </div>
 
-        <h1 className="text-3xl font-bold tracking-tight text-slate-100 mb-2 text-center">
-          UPI Flow
-        </h1>
-        <p className="text-sm text-slate-500 text-center leading-relaxed max-w-xs">
-          Set up your merchant profile once. Generate split payment QRs instantly.
+        <h2 className="text-3xl font-bold tracking-[-0.035em] text-slate-100 leading-snug relative z-10">
+          Set up your<br />
+          <span className="text-amber-400">merchant profile.</span>
+        </h2>
+        <p className="text-sm text-slate-500 mt-3 leading-relaxed relative z-10 max-w-xs">
+          Everything stays on this device. No accounts, no servers, no cloud.
         </p>
       </div>
 
-      {/* Form */}
+      {/* Form area */}
       <div className="flex-1 flex flex-col px-5 gap-4 slide-up">
-        <div className="glass rounded-3xl p-6 flex flex-col gap-5">
-          <div>
-            <h2 className="text-base font-semibold text-slate-200 mb-1">Merchant Setup</h2>
-            <p className="text-xs text-slate-500">Your information stays on this device only.</p>
-          </div>
-
+        <div
+          className="rounded-2xl p-5 flex flex-col gap-5"
+          style={{
+            background: 'rgba(13,17,32,0.8)',
+            border: '1px solid rgba(255,255,255,0.07)',
+          }}
+        >
           <Input
             label="Business Name"
-            placeholder="e.g. Sharma Store"
+            placeholder="e.g. Sharma Enterprises"
             value={businessName}
             onChange={e => setBusinessName(e.target.value)}
             error={errors.businessName}
-            icon={<Building2 size={16} />}
+            icon={<Building2 size={15} />}
             autoCapitalize="words"
             autoComplete="organization"
           />
 
           <Input
             label="UPI ID"
-            placeholder="e.g. sharmastore@upi"
+            placeholder="yourname@bank"
             value={upiId}
             onChange={e => setUpiId(e.target.value)}
             error={errors.upiId}
-            icon={<AtSign size={16} />}
+            icon={<AtSign size={15} />}
             autoCapitalize="none"
             autoComplete="off"
             inputMode="email"
           />
+        </div>
 
-          <div className="divider" />
-
-          <div className="flex items-start gap-3 py-1">
-            <div className="mt-0.5 w-1.5 h-1.5 rounded-full bg-indigo-400 flex-shrink-0" />
-            <p className="text-xs text-slate-500 leading-relaxed">
-              This app never processes or holds payments. All transactions happen through your normal UPI bank setup.
-            </p>
-          </div>
+        {/* Disclaimer */}
+        <div className="flex gap-2.5 px-1">
+          <div className="mt-1 w-1 h-1 rounded-full bg-slate-600 flex-shrink-0" />
+          <p className="text-xs text-slate-600 leading-relaxed">
+            This app generates QR codes only. It never processes, intercepts, or holds payments. All money moves through your bank's UPI infrastructure.
+          </p>
         </div>
 
         <Button
           variant="primary"
           size="lg"
           fullWidth
-          icon={<ArrowRight size={18} />}
+          icon={<ArrowRight size={17} />}
           iconPosition="right"
           onClick={handleSave}
+          className="mt-1"
         >
           Continue
         </Button>
 
-        <div className="pb-10" />
+        <div className="pb-8" />
       </div>
     </div>
   );
