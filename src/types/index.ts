@@ -4,6 +4,7 @@ export interface MerchantProfile {
   businessName: string;
   upiId: string;       // Primary or legacy UPI ID
   upiIds: string[];    // Array of all verified UPI IDs
+  upiLabels?: Record<string, string>; // Maps UPI ID -> User-defined Label
   createdAt: number;
 }
 

@@ -20,6 +20,7 @@ export const SettingsPage: React.FC = () => {
   // Add UPI State
   const [showAddUpi, setShowAddUpi] = useState(false);
   const [newUpiId, setNewUpiId] = useState('');
+  const [newUpiLabel, setNewUpiLabel] = useState('');
   const [upiError, setUpiError] = useState<string | undefined>();
   const [verifyNewUpiId, setVerifyNewUpiId] = useState<string | null>(null);
 
@@ -48,10 +49,15 @@ export const SettingsPage: React.FC = () => {
     
     setProfile({
       ...profile,
-      upiIds: [...(profile.upiIds || [profile.upiId]), verifyNewUpiId]
+      upiIds: [...(profile.upiIds || [profile.upiId]), verifyNewUpiId],
+      upiLabels: {
+        ...(profile.upiLabels || {}),
+        [verifyNewUpiId]: newUpiLabel.trim() || 'Additional UPI'
+      }
     });
     
     setNewUpiId('');
+    setNewUpiLabel('');
     setVerifyNewUpiId(null);
     setShowAddUpi(false);
   };
@@ -124,11 +130,11 @@ export const SettingsPage: React.FC = () => {
                   </div>
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-1)' }}>
-                      {id}
+                      {profile.upiLabels?.[id] || (index === 0 ? 'Primary Account' : id)}
                     </span>
-                    {index === 0 && (
-                       <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">Primary</span>
-                    )}
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5 truncate">
+                      {index === 0 ? `PRIMARY • ${id}` : id}
+                    </span>
                   </div>
                 </div>
                 {profile.upiIds!.length > 1 && (
@@ -285,35 +291,48 @@ export const SettingsPage: React.FC = () => {
               <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>Enter another UPI ID for round-robin payments.</p>
             </div>
             
-            <div className="flex flex-col gap-1.5">
+            <div className="flex flex-col gap-3">
               <div className="relative">
-                <span
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                  style={{ color: 'var(--color-text-3)' }}
-                >
-                  <AtSign size={16} strokeWidth={1.75} />
-                </span>
                 <input
                   className="input-field"
-                  placeholder="yourname@bank"
-                  value={newUpiId}
-                  onChange={e => setNewUpiId(e.target.value)}
-                  autoCapitalize="none"
-                  autoComplete="off"
-                  inputMode="email"
+                  placeholder="Label (e.g. HDFC Account)"
+                  value={newUpiLabel}
+                  onChange={e => setNewUpiLabel(e.target.value)}
+                  autoCapitalize="words"
+                  style={{ paddingLeft: '14px' }}
                 />
               </div>
-              {upiError && (
-                <p className="text-xs font-medium ml-1" style={{ color: 'var(--color-danger)' }}>
-                  {upiError}
-                </p>
-              )}
+              
+              <div className="flex flex-col gap-1.5">
+                <div className="relative">
+                  <span
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                    style={{ color: 'var(--color-text-3)' }}
+                  >
+                    <AtSign size={16} strokeWidth={1.75} />
+                  </span>
+                  <input
+                    className="input-field"
+                    placeholder="yourname@bank"
+                    value={newUpiId}
+                    onChange={e => setNewUpiId(e.target.value)}
+                    autoCapitalize="none"
+                    autoComplete="off"
+                    inputMode="email"
+                  />
+                </div>
+                {upiError && (
+                  <p className="text-xs font-medium ml-1" style={{ color: 'var(--color-danger)' }}>
+                    {upiError}
+                  </p>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-3 mt-2">
               <button 
                 className="btn-secondary flex-1"
-                onClick={() => { setShowAddUpi(false); setNewUpiId(''); setUpiError(undefined); }}
+                onClick={() => { setShowAddUpi(false); setNewUpiId(''); setNewUpiLabel(''); setUpiError(undefined); }}
               >
                 Cancel
               </button>
