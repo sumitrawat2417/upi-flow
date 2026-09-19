@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Check, ArrowRight } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
-import { TopBar } from '../../components/ui/TopBar';
+import { Check, ArrowRight, ChevronLeft } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { AppSettings, SplitResult } from '../../types';
 import { computeSplits, formatAmount } from '../../core/splitter';
@@ -26,50 +24,92 @@ export const SplitPage: React.FC = () => {
 
   return (
     <div className="app-shell fade-in">
-      <TopBar title="Split Strategy" subtitle={`₹${formatAmount(amount)} total`} backTo="/" />
+      {/* Header */}
+      <div className="hero-header px-5 pt-12 pb-8 relative z-10">
+        <div className="flex items-center gap-3 mb-4">
+          <button
+            onClick={() => navigate('/')}
+            className="icon-circle w-9 h-9 active:scale-90 transition-transform"
+            style={{ background: 'rgba(255,255,255,0.2)' }}
+            aria-label="Back"
+          >
+            <ChevronLeft size={18} strokeWidth={2.5} color="white" />
+          </button>
+          <div>
+            <h1 className="text-white font-bold text-xl tracking-tight">Split Strategy</h1>
+            <p className="text-white/55 text-xs mt-0.5">₹{formatAmount(amount)} total</p>
+          </div>
+        </div>
+      </div>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-8 flex flex-col gap-3 slide-up">
-
-        {/* Total pill */}
+      {/* Content */}
+      <div
+        className="flex-1 flex flex-col px-4 pb-8 gap-3 overflow-y-auto"
+        style={{
+          background: 'var(--color-bg)',
+          borderRadius: '24px 24px 0 0',
+          marginTop: '-20px',
+          zIndex: 10,
+          position: 'relative',
+          paddingTop: '24px',
+        }}
+      >
+        {/* Total display */}
         <div
-          className="rounded-2xl px-5 py-4 flex items-center justify-between"
-          style={{ background: 'rgba(13,17,32,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}
+          className="card flex items-center justify-between px-5 py-4 mb-1"
         >
-          <span className="label-sm">Total</span>
-          <span className="text-2xl font-bold tracking-[-0.03em] text-slate-100 font-mono">
+          <p className="section-label">Total Amount</p>
+          <p
+            className="text-2xl font-bold tracking-tight"
+            style={{ color: 'var(--color-primary)' }}
+          >
             ₹{formatAmount(amount)}
-          </span>
+          </p>
         </div>
 
-        {/* Options */}
-        <p className="label-sm px-1 mt-1">Choose an option</p>
+        {/* Section heading */}
+        <p className="section-label px-1">Choose a split option</p>
 
+        {/* Split options */}
         {splits.map((split: SplitResult, i: number) => {
           const active = i === idx;
           return (
             <button
               key={i}
               onClick={() => setIdx(i)}
-              className="w-full text-left rounded-2xl p-5 transition-all duration-100 active:scale-[0.99]"
-              style={{
-                background: active ? 'rgba(245,158,11,0.07)' : 'rgba(13,17,32,0.6)',
-                border: active ? '1px solid rgba(245,158,11,0.3)' : '1px solid rgba(255,255,255,0.06)',
-                boxShadow: active ? '0 0 0 1px rgba(245,158,11,0.08)' : 'none',
-              }}
+              className="card w-full text-left p-5 transition-all duration-100 active:scale-[0.99]"
+              style={
+                active
+                  ? {
+                      border: '2px solid var(--color-primary)',
+                      boxShadow: '0 4px 24px rgba(232,67,90,0.12)',
+                    }
+                  : {}
+              }
             >
-              <div className="flex items-center justify-between mb-3.5">
-                <span className="label-sm">
-                  {modeLabel[split.mode] ?? split.mode}
-                  &nbsp;·&nbsp;
-                  {split.amounts.length} payment{split.amounts.length > 1 ? 's' : ''}
-                </span>
-                {active && (
+              <div className="flex items-center justify-between mb-4">
+                <div>
                   <span
-                    className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: '#F59E0B' }}
+                    className="text-sm font-bold tracking-tight"
+                    style={{ color: active ? 'var(--color-primary)' : 'var(--color-text-1)' }}
                   >
-                    <Check size={11} strokeWidth={3} className="text-slate-900" />
+                    {modeLabel[split.mode] ?? split.mode}
                   </span>
+                  <span
+                    className="text-xs ml-2 font-medium"
+                    style={{ color: 'var(--color-text-3)' }}
+                  >
+                    {split.amounts.length} payment{split.amounts.length > 1 ? 's' : ''}
+                  </span>
+                </div>
+
+                {active && (
+                  <div
+                    className="icon-circle w-6 h-6 pop-in"
+                    style={{ background: 'var(--color-primary)' }}
+                  >
+                    <Check size={13} strokeWidth={2.5} color="white" />
+                  </div>
                 )}
               </div>
 
@@ -77,11 +117,11 @@ export const SplitPage: React.FC = () => {
                 {split.amounts.map((a, j) => (
                   <span
                     key={j}
-                    className="px-3.5 py-1.5 rounded-xl text-sm font-semibold font-mono tracking-[-0.01em]"
+                    className="px-3 py-1.5 rounded-full text-sm font-bold"
                     style={
                       active
-                        ? { background: 'rgba(245,158,11,0.12)', color: '#FBBF24', border: '1px solid rgba(245,158,11,0.25)' }
-                        : { background: 'rgba(255,255,255,0.04)', color: '#94A3B8', border: '1px solid rgba(255,255,255,0.07)' }
+                        ? { background: 'rgba(232,67,90,0.08)', color: 'var(--color-primary)' }
+                        : { background: 'var(--color-surface-2)', color: 'var(--color-text-2)' }
                     }
                   >
                     ₹{formatAmount(a)}
@@ -93,21 +133,17 @@ export const SplitPage: React.FC = () => {
         })}
 
         {/* Note */}
-        <p className="label-sm px-1 text-slate-700 mt-1">
-          Threshold: ₹{formatAmount(settings.splitThreshold)} &nbsp;·&nbsp; Change in Settings
+        <p className="section-label px-1 text-center">
+          Threshold ₹{formatAmount(settings.splitThreshold)} · Change in Settings
         </p>
 
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
+        <button
+          className="btn-primary w-full mt-1"
           onClick={() => navigate('/session/new', { state: { amount, split: selected } })}
-          icon={<ArrowRight size={17} />}
-          iconPosition="right"
-          className="mt-1"
         >
           Start Session
-        </Button>
+          <ArrowRight size={18} strokeWidth={2} />
+        </button>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider } from './context/ThemeContext';
 import { SetupPage }    from './pages/Setup/SetupPage';
 import { HomePage }     from './pages/Home/HomePage';
 import { SplitPage }    from './pages/Split/SplitPage';
@@ -8,7 +9,6 @@ import { HistoryPage }  from './pages/History/HistoryPage';
 import { SettingsPage } from './pages/Settings/SettingsPage';
 import type { MerchantProfile } from './types';
 
-// Check if merchant is set up
 function getProfile(): MerchantProfile | null {
   try {
     const raw = localStorage.getItem('merchant_profile');
@@ -23,9 +23,8 @@ const RequireSetup: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 export default function App() {
   return (
-    <BrowserRouter>
-      {/* Full-height background with subtle gradient */}
-      <div className="min-h-dvh">
+    <ThemeProvider>
+      <BrowserRouter>
         <Routes>
           <Route path="/setup" element={<SetupPage />} />
           <Route path="/" element={<RequireSetup><HomePage /></RequireSetup>} />
@@ -35,7 +34,7 @@ export default function App() {
           <Route path="/settings" element={<RequireSetup><SettingsPage /></RequireSetup>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </div>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 }

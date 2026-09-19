@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Settings, Delete, ArrowRight } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
+import { History, Settings, Delete, ArrowRight, Sun, Moon } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
+import { useTheme } from '../../context/ThemeContext';
 import type { MerchantProfile, AppSettings } from '../../types';
 import { formatAmount } from '../../core/splitter';
 
 const KEYS = ['1','2','3','4','5','6','7','8','9','.','0','del'];
 
 export const HomePage: React.FC = () => {
-  const navigate = useNavigate();
+  const navigate  = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [profile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
   const [settings] = useLocalStorage<AppSettings>('app_settings', { splitThreshold: 2000 });
   const [raw, setRaw] = useState('');
 
   const numericValue = parseFloat(raw) || 0;
-  const needsSplit   = numericValue > settings.splitThreshold;
+  const needsSplit   = numericValue > 0 && numericValue > settings.splitThreshold;
   const canProceed   = numericValue > 0;
 
   const handleKey = (key: string) => {
@@ -26,7 +27,7 @@ export const HomePage: React.FC = () => {
       return;
     }
     if (raw === '0' && key !== '.') { setRaw(key); return; }
-    if (raw.replace(/\D/g, '').length >= 8) return;
+    if (raw.replace(/\D/g, '').length >= 7) return;
     setRaw(prev => prev + key);
   };
 
@@ -35,121 +36,144 @@ export const HomePage: React.FC = () => {
     navigate('/split', { state: { amount: numericValue } });
   };
 
-  // Format display: split integer from decimal
-  const parts = (raw || '').split('.');
-  const intPart = parts[0] ? parseInt(parts[0], 10).toLocaleString('en-IN') : '0';
-  const decPart = parts.length > 1 ? '.' + parts[1] : '';
+  // Format display
+  const parts  = (raw || '').split('.');
+  const intVal = parts[0] ? parseInt(parts[0], 10) : 0;
+  const intStr = intVal.toLocaleString('en-IN');
+  const decStr = parts.length > 1 ? '.' + parts[1] : '';
 
   return (
     <div className="app-shell fade-in">
-      {/* Header */}
-      <header className="flex items-start justify-between px-5 pt-14 pb-2">
-        {/* Merchant info */}
-        <div className="flex flex-col gap-0.5">
-          <span className="label-sm">Merchant</span>
-          <span className="text-[15px] font-semibold text-slate-100 tracking-[-0.02em] truncate max-w-[190px]">
-            {profile?.businessName ?? 'Setup required'}
-          </span>
-          <span
-            className="text-xs truncate max-w-[190px] font-mono mt-0.5"
-            style={{ color: '#64748B', fontSize: '11px' }}
-          >
-            {profile?.upiId ?? '—'}
-          </span>
-        </div>
+      {/* ── Compact header ── */}
+      <div className="hero-header px-5 pt-12 pb-5 relative z-10">
+        <div className="flex items-center justify-between">
+          {/* Merchant info */}
+          <div>
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-0.5">Merchant</p>
+            <p className="text-white font-bold text-base leading-tight">{profile?.businessName ?? 'Setup required'}</p>
+            <p className="text-white/50 text-xs mt-0.5">{profile?.upiId ?? '—'}</p>
+          </div>
 
-        {/* Icon row */}
-        <div className="flex items-center gap-1.5 mt-0.5">
-          {[
-            { icon: <History size={17} strokeWidth={1.75} />, label: 'History', to: '/history' },
-            { icon: <Settings size={17} strokeWidth={1.75} />, label: 'Settings', to: '/settings' },
-          ].map(({ icon, label, to }) => (
+          {/* Action icons */}
+          <div className="flex items-center gap-2">
             <button
-              key={to}
-              onClick={() => navigate(to)}
-              aria-label={label}
-              className="
-                w-9 h-9 rounded-xl flex items-center justify-center
-                text-slate-600 hover:text-slate-300
-                bg-white/[0.03] border border-white/[0.06]
-                hover:bg-white/[0.07] hover:border-white/[0.10]
-                transition-all duration-100 active:scale-90
-              "
+              onClick={toggleTheme}
+              className="icon-circle w-9 h-9"
+              style={{ background: 'rgba(255,255,255,0.15)' }}
+              aria-label="Toggle theme"
             >
-              {icon}
+              {theme === 'dark'
+                ? <Sun size={16} strokeWidth={2} color="white" />
+                : <Moon size={16} strokeWidth={2} color="white" />
+              }
             </button>
-          ))}
-        </div>
-      </header>
-
-      {/* Amount display */}
-      <div className="flex flex-col items-center justify-center px-6 flex-1 pb-4">
-        <p className="label-sm mb-4">Amount to collect</p>
-
-        {/* The big number */}
-        <div className="relative mb-3">
-          <span className="amount-display text-slate-100">
-            <span className="amount-prefix">₹</span>
-            {intPart}
-            {decPart && <span className="text-slate-500">{decPart}</span>}
-          </span>
-          {/* cursor blink */}
-          {raw.endsWith('.') && !decPart.slice(1) && (
-            <span className="inline-block w-0.5 h-8 bg-amber-400 ml-1 animate-pulse align-middle" />
-          )}
-        </div>
-
-        {/* Context pill */}
-        <div className="h-7 flex items-center">
-          {numericValue > 0 && (
-            <div
-              className="pop-in px-4 py-1 rounded-full text-xs font-mono font-medium"
-              style={
-                needsSplit
-                  ? { background: 'rgba(139,92,246,0.1)', color: '#A78BFA', border: '1px solid rgba(139,92,246,0.2)' }
-                  : { background: 'rgba(16,185,129,0.08)', color: '#34D399', border: '1px solid rgba(16,185,129,0.18)' }
-              }
+            <button
+              onClick={() => navigate('/history')}
+              className="icon-circle w-9 h-9"
+              style={{ background: 'rgba(255,255,255,0.15)' }}
+              aria-label="History"
             >
-              {needsSplit
-                ? `Split into ${Math.ceil(numericValue / settings.splitThreshold)} payments`
-                : 'Single payment'
-              }
-            </div>
-          )}
+              <History size={16} strokeWidth={2} color="white" />
+            </button>
+            <button
+              onClick={() => navigate('/settings')}
+              className="icon-circle w-9 h-9"
+              style={{ background: 'rgba(255,255,255,0.15)' }}
+              aria-label="Settings"
+            >
+              <Settings size={16} strokeWidth={2} color="white" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Numpad */}
-      <div className="px-5 pb-6">
-        <div className="grid grid-cols-3 gap-2.5 mb-3">
-          {KEYS.map(key => (
-            <button
-              key={key}
-              onPointerDown={() => handleKey(key)}
-              className="key-btn"
-              aria-label={key === 'del' ? 'Delete' : key}
+      {/* ── Main content — rounded top card ── */}
+      <div
+        className="flex-1 flex flex-col"
+        style={{
+          background: 'var(--color-bg)',
+          borderRadius: '24px 24px 0 0',
+          marginTop: '-20px',
+          position: 'relative',
+          zIndex: 10,
+        }}
+      >
+        {/* Amount display */}
+        <div className="flex flex-col items-center justify-center px-6 pt-8 pb-4">
+          <p className="section-label mb-4">Amount to collect</p>
+
+          {/* Amount */}
+          <div className="flex items-baseline justify-center gap-1 mb-2">
+            <span
+              className="text-2xl font-semibold"
+              style={{ color: 'var(--color-text-3)' }}
             >
-              {key === 'del'
-                ? <Delete size={20} strokeWidth={1.75} />
-                : key
-              }
-            </button>
-          ))}
+              ₹
+            </span>
+            <span
+              className="amount-large"
+              style={{ color: raw ? 'var(--color-text-1)' : 'var(--color-text-4)' }}
+            >
+              {raw ? intStr : '0'}
+              {decStr && (
+                <span style={{ color: 'var(--color-text-3)' }}>{decStr}</span>
+              )}
+            </span>
+          </div>
+
+          {/* Context chip */}
+          <div className="h-7 flex items-center">
+            {numericValue > 0 && (
+              <div
+                className="pop-in px-4 py-1 rounded-full text-xs font-semibold"
+                style={
+                  needsSplit
+                    ? { background: 'rgba(232,67,90,0.08)', color: 'var(--color-primary)', border: '1px solid rgba(232,67,90,0.15)' }
+                    : { background: 'rgba(34,197,94,0.08)', color: '#16A34A', border: '1px solid rgba(34,197,94,0.15)' }
+                }
+              >
+                {needsSplit
+                  ? `Will split into ${Math.ceil(numericValue / settings.splitThreshold)} payments`
+                  : 'Single payment'
+                }
+              </div>
+            )}
+          </div>
         </div>
 
-        <Button
-          variant="primary"
-          size="lg"
-          fullWidth
-          disabled={!canProceed}
-          onClick={handleProceed}
-          icon={<ArrowRight size={17} />}
-          iconPosition="right"
-        >
-          {needsSplit ? 'Choose Split' : 'Generate QR'}
-        </Button>
+        {/* Divider */}
+        <div className="divider mx-5" />
 
-        <div className="pb-2" />
+        {/* Numpad */}
+        <div className="px-5 pt-2 pb-4">
+          <div className="grid grid-cols-3">
+            {KEYS.map(key => (
+              <button
+                key={key}
+                onPointerDown={() => handleKey(key)}
+                className="key-btn"
+                aria-label={key === 'del' ? 'Delete' : key}
+              >
+                {key === 'del'
+                  ? <Delete size={22} strokeWidth={1.75} style={{ color: 'var(--color-text-2)' }} />
+                  : <span style={{ color: 'var(--color-text-1)' }}>{key}</span>
+                }
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div className="px-5 pb-8">
+          <button
+            className="btn-primary w-full"
+            disabled={!canProceed}
+            onClick={handleProceed}
+          >
+            {needsSplit ? 'Choose Split' : 'Generate QR'}
+            <ArrowRight size={18} strokeWidth={2} />
+          </button>
+        </div>
       </div>
     </div>
   );

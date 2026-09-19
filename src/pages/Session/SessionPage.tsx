@@ -1,46 +1,42 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CheckCircle2, Lock, ChevronRight, Home } from 'lucide-react';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { TopBar } from '../../components/ui/TopBar';
+import { CheckCircle2, Lock, Home, ChevronLeft, RefreshCw } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { PaymentSession, Payment, SplitResult, MerchantProfile } from '../../types';
 import { generateQRId, generateSessionId, generateShortId, formatAmount } from '../../core/splitter';
 
-/* ─── Placeholder QR ─────────────────────────────────────────────── */
-const QRPlaceholder: React.FC<{ size?: number; id: string }> = ({ size = 200, id }) => {
-  // Deterministic cell pattern from ID
+/* ─── QR Code component (deterministic pattern) ──────────────── */
+const QRCode: React.FC<{ id: string; size?: number }> = ({ id, size = 200 }) => {
+  const seed = id.split('').reduce((acc, c, i) => acc + c.charCodeAt(0) * (i + 1), 0);
   const cells = Array.from({ length: 49 }, (_, i) => {
-    const row = Math.floor(i / 7), col = i % 7;
-    // Finder patterns (top-left, top-right, bottom-left)
-    const tlFinder = row < 3 && col < 3;
-    const trFinder = row < 3 && col >= 4;
-    const blFinder = row >= 4 && col < 3;
-    if (tlFinder || trFinder || blFinder) return true;
-    // Random data cells from ID seed
-    const seed = id.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
-    return ((seed * (i + 7) * 31) % 17) < 9;
+    const r = Math.floor(i / 7), c = i % 7;
+    // Corner finder patterns
+    if ((r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)) return true;
+    // Data
+    return ((seed * (i + 11) + i * 37) % 23) < 12;
   });
+
+  const cellSize = (size - 40) / 7;
 
   return (
     <div
-      className="rounded-2xl p-4 flex items-center justify-center"
       style={{
         width: size, height: size,
-        background: '#F8FAFC',
-        boxShadow: '0 0 0 1px rgba(139,92,246,0.2), 0 8px 32px rgba(139,92,246,0.15)',
+        background: 'white',
+        borderRadius: 20,
+        padding: 20,
+        boxShadow: '0 4px 24px rgba(232,67,90,0.12), 0 1px 4px rgba(0,0,0,0.06)',
       }}
     >
-      <div
-        className="grid"
-        style={{ gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, width: size - 40, height: size - 40 }}
-      >
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(7, ${cellSize}px)`, gap: 3 }}>
         {cells.map((filled, i) => (
           <div
             key={i}
-            className="rounded-sm"
-            style={{ background: filled ? '#1E293B' : 'transparent', aspectRatio: '1' }}
+            style={{
+              width: cellSize, height: cellSize,
+              background: filled ? '#1A1A2E' : 'transparent',
+              borderRadius: 3,
+            }}
           />
         ))}
       </div>
@@ -48,7 +44,7 @@ const QRPlaceholder: React.FC<{ size?: number; id: string }> = ({ size = 200, id
   );
 };
 
-/* ─── Build session ──────────────────────────────────────────────── */
+/* ─── Build session ──────────────────────────────────────────── */
 function buildSession(amount: number, split: SplitResult, merchantId: string, upiId: string): PaymentSession {
   const payments: Payment[] = split.amounts.map(amt => ({
     id: generateQRId(),
@@ -68,9 +64,9 @@ function buildSession(amount: number, split: SplitResult, merchantId: string, up
 }
 
 export const SessionPage: React.FC = () => {
-  const navigate      = useNavigate();
-  const { state }     = useLocation();
-  const amount: number    = state?.amount ?? 0;
+  const navigate       = useNavigate();
+  const { state }      = useLocation();
+  const amount: number     = state?.amount ?? 0;
   const split: SplitResult = state?.split;
 
   const [profile]  = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
@@ -111,64 +107,89 @@ export const SessionPage: React.FC = () => {
     });
   };
 
-  /* ── Complete screen ── */
+  /* ── Completion screen ── */
   if (isComplete) {
     return (
-      <div className="app-shell fade-in flex flex-col items-center justify-center px-6 text-center">
-        {/* Success ring */}
-        <div className="relative mb-8">
+      <div className="app-shell fade-in flex flex-col">
+        <div className="hero-header px-5 pt-12 pb-10 flex flex-col items-center relative z-10">
           <div
-            className="w-20 h-20 rounded-full flex items-center justify-center"
-            style={{
-              background: 'rgba(16,185,129,0.08)',
-              border: '1px solid rgba(16,185,129,0.2)',
-              boxShadow: '0 0 0 8px rgba(16,185,129,0.04), 0 8px 32px rgba(16,185,129,0.15)',
-            }}
+            className="icon-circle w-16 h-16 mb-4"
+            style={{ background: 'rgba(255,255,255,0.25)', backdropFilter: 'blur(8px)' }}
           >
-            <CheckCircle2 size={36} strokeWidth={1.5} className="text-emerald-400" />
+            <CheckCircle2 size={30} strokeWidth={1.75} color="white" />
           </div>
+          <p className="text-white/70 text-sm font-semibold mb-1">Session Complete</p>
+          <p className="text-white font-extrabold text-4xl tracking-tight">
+            ₹{formatAmount(session.totalAmount)}
+          </p>
+          <p className="text-white/50 text-xs mt-2">{session.payments.length} payments collected</p>
         </div>
 
-        <p className="label-sm text-emerald-400/70 mb-2">Session Complete</p>
-        <p className="text-4xl font-bold tracking-[-0.04em] text-slate-100 mb-1">
-          <span style={{ fontSize: '0.5em', fontWeight: 500, color: '#475569', verticalAlign: '0.2em', marginRight: 2 }}>₹</span>
-          {formatAmount(session.totalAmount)}
-        </p>
-        <p className="label-sm text-slate-600 mb-8">{session.id} · {session.payments.length} payments</p>
-
-        {/* Summary table */}
         <div
-          className="w-full rounded-2xl overflow-hidden mb-6"
-          style={{ background: 'rgba(13,17,32,0.8)', border: '1px solid rgba(255,255,255,0.07)' }}
+          className="flex-1 flex flex-col px-4 pb-8 gap-3 overflow-y-auto"
+          style={{
+            background: 'var(--color-bg)',
+            borderRadius: '24px 24px 0 0',
+            marginTop: '-20px',
+            zIndex: 10,
+            position: 'relative',
+            paddingTop: '24px',
+          }}
         >
-          {session.payments.map((p, i) => (
-            <div
-              key={p.id}
-              className={`flex items-center justify-between px-5 py-3.5 ${i > 0 ? 'border-t border-white/[0.05]' : ''}`}
-            >
-              <div className="flex items-center gap-2.5">
-                <CheckCircle2 size={14} className="text-emerald-400 flex-shrink-0" strokeWidth={2} />
-                <span className="text-xs font-mono text-slate-500">{p.id}</span>
+          {/* Payment breakdown */}
+          <div className="card overflow-hidden">
+            {session.payments.map((p, i) => (
+              <div
+                key={p.id}
+                className="flex items-center justify-between px-5 py-3.5"
+                style={i > 0 ? { borderTop: '1px solid var(--color-border)' } : {}}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className="icon-circle w-7 h-7"
+                    style={{ background: 'rgba(34,197,94,0.10)' }}
+                  >
+                    <CheckCircle2 size={14} strokeWidth={2} color="#16A34A" />
+                  </div>
+                  <span className="text-xs font-semibold" style={{ color: 'var(--color-text-2)' }}>
+                    {p.id}
+                  </span>
+                </div>
+                <span className="text-sm font-bold" style={{ color: 'var(--color-text-1)' }}>
+                  ₹{formatAmount(p.amount)}
+                </span>
               </div>
-              <span className="text-sm font-semibold font-mono text-slate-300">₹{formatAmount(p.amount)}</span>
+            ))}
+            <div
+              className="flex items-center justify-between px-5 py-4"
+              style={{
+                background: 'rgba(232,67,90,0.04)',
+                borderTop: '1px solid var(--color-border)',
+              }}
+            >
+              <span className="section-label">Total Collected</span>
+              <span className="text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>
+                ₹{formatAmount(session.totalAmount)}
+              </span>
             </div>
-          ))}
-          <div
-            className="flex items-center justify-between px-5 py-3.5 border-t border-white/[0.05]"
-            style={{ background: 'rgba(255,255,255,0.02)' }}
-          >
-            <span className="label-sm">Total Collected</span>
-            <span className="text-base font-bold font-mono text-slate-100">₹{formatAmount(session.totalAmount)}</span>
           </div>
-        </div>
 
-        <div className="flex gap-2.5 w-full">
-          <Button variant="secondary" size="lg" fullWidth onClick={() => navigate('/history')} icon={<ChevronRight size={15} />} iconPosition="right">
-            History
-          </Button>
-          <Button variant="primary" size="lg" fullWidth onClick={() => navigate('/')} icon={<Home size={15} />} iconPosition="right">
-            New
-          </Button>
+          <div className="flex gap-3 mt-1">
+            <button
+              className="btn-secondary flex-1"
+              onClick={() => navigate('/history')}
+            >
+              <RefreshCw size={15} strokeWidth={2} />
+              History
+            </button>
+            <button
+              className="btn-primary flex-1"
+              onClick={() => navigate('/')}
+            >
+              <Home size={15} strokeWidth={2} />
+              New Session
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -177,90 +198,131 @@ export const SessionPage: React.FC = () => {
   /* ── Active session ── */
   return (
     <div className="app-shell fade-in">
-      <TopBar
-        title={`Session ${session.id}`}
-        subtitle={`₹${formatAmount(session.totalAmount)} · ${received}/${session.payments.length} received`}
-        backTo="/"
-      />
-
-      <div className="flex-1 flex flex-col px-5 pb-6 gap-4 overflow-y-auto slide-up">
-
-        {/* Active QR card */}
-        {activePayment && (
-          <div
-            className="rounded-3xl p-6 flex flex-col items-center gap-4"
-            style={{ background: 'rgba(13,17,32,0.85)', border: '1px solid rgba(255,255,255,0.07)' }}
+      {/* Header */}
+      <div className="hero-header px-5 pt-12 pb-8 relative z-10">
+        <div className="flex items-center gap-3 mb-3">
+          <button
+            onClick={() => navigate('/')}
+            className="icon-circle w-9 h-9 active:scale-90 transition-transform"
+            style={{ background: 'rgba(255,255,255,0.2)' }}
           >
-            {/* Header row */}
+            <ChevronLeft size={18} strokeWidth={2.5} color="white" />
+          </button>
+          <div>
+            <h1 className="text-white font-bold text-xl tracking-tight">
+              {session.id}
+            </h1>
+            <p className="text-white/55 text-xs mt-0.5">
+              {received}/{session.payments.length} received · ₹{formatAmount(session.totalAmount)}
+            </p>
+          </div>
+        </div>
+
+        {/* Progress dots */}
+        <div className="flex gap-2 mt-2">
+          {session.payments.map((p, i) => (
+            <div
+              key={p.id}
+              className="h-1.5 flex-1 rounded-full transition-all"
+              style={{
+                background: p.status === 'received'
+                  ? 'rgba(255,255,255,0.9)'
+                  : p.status === 'active'
+                    ? 'rgba(255,255,255,0.5)'
+                    : 'rgba(255,255,255,0.2)',
+              }}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Content */}
+      <div
+        className="flex-1 flex flex-col px-4 pb-6 gap-4 overflow-y-auto"
+        style={{
+          background: 'var(--color-bg)',
+          borderRadius: '24px 24px 0 0',
+          marginTop: '-20px',
+          zIndex: 10,
+          position: 'relative',
+          paddingTop: '24px',
+        }}
+      >
+        {/* QR Card */}
+        {activePayment && (
+          <div className="card flex flex-col items-center px-5 py-6 gap-4">
             <div className="flex items-center justify-between w-full">
               <div>
-                <p className="text-xs font-mono font-semibold" style={{ color: '#A78BFA' }}>{activePayment.id}</p>
-                <p className="text-2xl font-bold tracking-[-0.03em] text-slate-100 mt-0.5 font-mono">
+                <p className="text-xs font-semibold mb-0.5" style={{ color: 'var(--color-text-3)' }}>
+                  Payment {activeIdx + 1} of {session.payments.length}
+                </p>
+                <p className="text-2xl font-extrabold tracking-tight" style={{ color: 'var(--color-primary)' }}>
                   ₹{formatAmount(activePayment.amount)}
                 </p>
               </div>
-              <Badge variant="active" />
+              <div
+                className="status-pill status-active pulse-glow"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block" />
+                Active
+              </div>
             </div>
 
-            {/* QR */}
-            <QRPlaceholder size={210} id={activePayment.id} />
+            <QRCode id={activePayment.id} size={200} />
 
-            <p className="text-xs text-slate-600 text-center leading-relaxed">
-              Show this QR to the customer. Confirm receipt from your bank app, then tap below.
+            <p className="text-xs text-center leading-relaxed" style={{ color: 'var(--color-text-3)' }}>
+              Show this QR. Confirm from your bank app, then tap below.
             </p>
+
+            <button
+              className="btn-primary w-full"
+              onClick={markReceived}
+            >
+              <CheckCircle2 size={17} strokeWidth={2} />
+              Confirm Payment Received
+            </button>
           </div>
         )}
 
-        {/* Progress rail */}
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ background: 'rgba(13,17,32,0.6)', border: '1px solid rgba(255,255,255,0.06)' }}
-        >
+        {/* Payment list */}
+        <div className="card overflow-hidden">
           <div className="px-5 pt-4 pb-2">
-            <span className="label-sm">Payment Progress</span>
+            <p className="section-label">All Payments</p>
           </div>
           {session.payments.map((p, i) => (
             <div
               key={p.id}
-              className={`flex items-center justify-between px-5 py-3.5 transition-colors ${i > 0 ? 'border-t border-white/[0.05]' : ''}`}
-              style={p.status === 'active' ? { background: 'rgba(139,92,246,0.05)' } : {}}
+              className="flex items-center justify-between px-5 py-3.5"
+              style={i > 0 ? { borderTop: '1px solid var(--color-border)' } : {}}
             >
               <div className="flex items-center gap-3">
-                {p.status === 'received' && (
-                  <CheckCircle2 size={15} className="text-emerald-400 flex-shrink-0" strokeWidth={1.75} />
-                )}
-                {p.status === 'active' && (
-                  <div
-                    className="w-3.5 h-3.5 rounded-full flex-shrink-0 pulse-ring"
-                    style={{ background: '#8B5CF6', border: '2px solid #A78BFA' }}
-                  />
-                )}
-                {p.status === 'pending' && (
-                  <Lock size={13} className="text-slate-700 flex-shrink-0" strokeWidth={2} />
-                )}
-                <span className="text-xs font-mono text-slate-500">{p.id}</span>
+                <div
+                  className="icon-circle w-7 h-7"
+                  style={{
+                    background: p.status === 'received'
+                      ? 'rgba(34,197,94,0.10)'
+                      : p.status === 'active'
+                        ? 'rgba(232,67,90,0.10)'
+                        : 'var(--color-surface-2)',
+                  }}
+                >
+                  {p.status === 'received' && <CheckCircle2 size={14} strokeWidth={2} color="#16A34A" />}
+                  {p.status === 'active'   && <span className="w-2 h-2 rounded-full bg-red-500 pulse-glow" />}
+                  {p.status === 'pending'  && <Lock size={12} strokeWidth={2} color="var(--color-text-3)" />}
+                </div>
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-text-2)' }}>{p.id}</span>
               </div>
               <div className="flex items-center gap-2.5">
-                <span className="text-sm font-semibold font-mono text-slate-300">₹{formatAmount(p.amount)}</span>
-                <Badge variant={p.status === 'pending' ? 'pending' : p.status} size="sm" />
+                <span className="text-sm font-bold" style={{ color: 'var(--color-text-1)' }}>
+                  ₹{formatAmount(p.amount)}
+                </span>
+                <span className={`status-pill status-${p.status}`}>
+                  {p.status === 'received' ? 'Done' : p.status === 'active' ? 'Active' : 'Pending'}
+                </span>
               </div>
             </div>
           ))}
         </div>
-
-        {/* CTA */}
-        {activePayment && (
-          <Button
-            variant="success"
-            size="lg"
-            fullWidth
-            onClick={markReceived}
-            icon={<CheckCircle2 size={17} />}
-            iconPosition="left"
-          >
-            Confirm — {activePayment.id} received
-          </Button>
-        )}
       </div>
     </div>
   );
