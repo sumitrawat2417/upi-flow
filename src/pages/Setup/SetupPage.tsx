@@ -1,6 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, AtSign, ArrowRight, QrCode, Loader2 } from 'lucide-react';
+import { Building2, AtSign, ArrowRight, QrCode, Loader2, Camera, Image, X } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { MerchantProfile } from '../../types';
 import { generateShortId } from '../../core/splitter';
@@ -12,8 +12,15 @@ export const SetupPage: React.FC = () => {
   const [businessName, setBusinessName] = useState('');
   const [upiId, setUpiId]               = useState('');
   const [errors, setErrors]             = useState<{ businessName?: string; upiId?: string }>({});
+  
+  // File Scanning State
   const [isScanning, setIsScanning]     = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Live Camera State
+  const [showCamera, setShowCamera] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
 
   const validate = () => {
     const next: typeof errors = {};
@@ -35,6 +42,35 @@ export const SetupPage: React.FC = () => {
     navigate('/');
   };
 
+  const processScanResult = (text: string) => {
+    let parsedPa = '';
+    let parsedPn = '';
+    
+    try {
+      const url = new URL(text);
+      if (url.protocol === 'upi:') {
+        parsedPa = url.searchParams.get('pa') || '';
+        parsedPn = url.searchParams.get('pn') || '';
+      }
+    } catch {
+      // Not a URL, treat as raw text
+      if (text.includes('@')) parsedPa = text;
+    }
+    
+    if (parsedPa) {
+      setUpiId(parsedPa);
+      if (parsedPn && !businessName) {
+        setBusinessName(parsedPn);
+      }
+      setErrors(prev => ({ ...prev, upiId: undefined }));
+      return true;
+    } else {
+      setErrors(prev => ({ ...prev, upiId: 'Invalid QR code. Please scan a valid UPI QR.' }));
+      return false;
+    }
+  };
+
+  // ─── File Upload Logic ───
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -42,32 +78,8 @@ export const SetupPage: React.FC = () => {
     setIsScanning(true);
     try {
       const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
-      // Depending on the library version, the result can be an object { data: string } or a string directly.
       const text = typeof result === 'object' && result !== null && 'data' in result ? (result as any).data : result;
-      
-      let parsedPa = '';
-      let parsedPn = '';
-      
-      try {
-        const url = new URL(text);
-        if (url.protocol === 'upi:') {
-          parsedPa = url.searchParams.get('pa') || '';
-          parsedPn = url.searchParams.get('pn') || '';
-        }
-      } catch {
-        // Not a URL, treat as raw text
-        if (text.includes('@')) parsedPa = text;
-      }
-      
-      if (parsedPa) {
-        setUpiId(parsedPa);
-        if (parsedPn && !businessName) {
-          setBusinessName(parsedPn);
-        }
-        setErrors(prev => ({ ...prev, upiId: undefined }));
-      } else {
-        setErrors(prev => ({ ...prev, upiId: 'Invalid QR code. Please scan a valid UPI QR.' }));
-      }
+      processScanResult(text);
     } catch (err) {
       console.error(err);
       setErrors(prev => ({ ...prev, upiId: 'Could not detect QR code in image.' }));
@@ -77,18 +89,98 @@ export const SetupPage: React.FC = () => {
     }
   };
 
+  // ─── Live Camera Logic ───
+  useEffect(() => {
+    if (showCamera && videoRef.current) {
+      qrScannerRef.current = new QrScanner(
+        videoRef.current,
+        result => {
+          const text = typeof result === 'object' && result !== null && 'data' in result ? (result as any).data : result;
+          if (processScanResult(text)) {
+            closeCamera(); // Close automatically on successful scan
+          }
+        },
+        { 
+          returnDetailedScanResult: true,
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        }
+      );
+      
+      qrScannerRef.current.start().catch((err) => {
+        console.error(err);
+        setErrors(prev => ({ ...prev, upiId: 'Camera access denied or unavailable.' }));
+        setShowCamera(false);
+      });
+    }
+
+    return () => {
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop();
+        qrScannerRef.current.destroy();
+        qrScannerRef.current = null;
+      }
+    };
+  }, [showCamera]);
+
+  const closeCamera = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
+    }
+    setShowCamera(false);
+  };
+
   return (
     <div className="app-shell fade-in">
-      {/* Hidden file input for camera/gallery */}
+      {/* Hidden file input for gallery */}
       <input
         type="file"
         accept="image/*"
-        capture="environment"
         ref={fileInputRef}
         onChange={handleFileChange}
         className="hidden"
         style={{ display: 'none' }}
       />
+
+      {/* Live Camera Modal Overlay */}
+      {showCamera && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black">
+          <div className="relative flex-1 flex flex-col">
+            <video 
+              ref={videoRef} 
+              className="absolute inset-0 w-full h-full object-cover" 
+            />
+            {/* Modal Header */}
+            <div className="absolute top-0 inset-x-0 p-5 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent z-10">
+              <p className="text-white font-bold tracking-wide">Scan UPI QR</p>
+              <button 
+                onClick={closeCamera}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md active:scale-95 transition-transform"
+              >
+                <X color="white" strokeWidth={2.5} size={20} />
+              </button>
+            </div>
+            
+            {/* Scanning Guide Box */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="w-64 h-64 border-2 border-white/50 rounded-2xl relative">
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-2xl"></div>
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-2xl"></div>
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-2xl"></div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-2xl"></div>
+              </div>
+            </div>
+            
+            <div className="absolute bottom-10 inset-x-0 text-center z-10">
+              <p className="text-white/80 text-sm bg-black/40 px-4 py-2 rounded-full inline-block backdrop-blur-md">
+                Point camera at a UPI QR code
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Hero gradient top */}
       <div className="hero-header px-6 pt-16 pb-10 relative z-10">
@@ -152,20 +244,33 @@ export const SetupPage: React.FC = () => {
           <div className="flex flex-col gap-1.5">
             <label className="section-label px-1 flex justify-between items-end">
               <span>UPI ID</span>
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95"
-                style={{ color: 'var(--color-primary)' }}
-                type="button"
-                disabled={isScanning}
-              >
-                {isScanning ? (
-                  <Loader2 size={12} className="animate-spin" />
-                ) : (
-                  <QrCode size={12} strokeWidth={2.5} />
-                )}
-                {isScanning ? 'Scanning...' : 'Scan QR'}
-              </button>
+              
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setShowCamera(true)}
+                  className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95"
+                  style={{ color: 'var(--color-primary)' }}
+                  type="button"
+                  disabled={isScanning || showCamera}
+                >
+                  <Camera size={12} strokeWidth={2.5} />
+                  Camera
+                </button>
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95"
+                  style={{ color: 'var(--color-primary)' }}
+                  type="button"
+                  disabled={isScanning || showCamera}
+                >
+                  {isScanning ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Image size={12} strokeWidth={2.5} />
+                  )}
+                  {isScanning ? 'Wait...' : 'Album'}
+                </button>
+              </div>
             </label>
             <div className="relative">
               <span
@@ -216,7 +321,7 @@ export const SetupPage: React.FC = () => {
           <button
             className="btn-primary w-full"
             onClick={handleSave}
-            disabled={isScanning}
+            disabled={isScanning || showCamera}
           >
             Continue
             <ArrowRight size={18} strokeWidth={2} />
