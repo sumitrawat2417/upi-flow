@@ -1,16 +1,20 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, AtSign, ArrowRight, QrCode, Loader2, Camera, Image, X } from 'lucide-react';
+import { Building2, AtSign, ArrowRight, QrCode, Loader2, Camera, Image, X, Plus, Trash2 } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { MerchantProfile } from '../../types';
 import { generateShortId } from '../../core/splitter';
 import QrScanner from 'qr-scanner';
+import { QRCodeSVG } from 'qrcode.react';
 
 export const SetupPage: React.FC = () => {
   const navigate = useNavigate();
   const [, setProfile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
+  
   const [businessName, setBusinessName] = useState('');
-  const [upiId, setUpiId]               = useState('');
+  const [upiIds, setUpiIds]             = useState<string[]>([]);
+  const [draftUpiId, setDraftUpiId]     = useState('');
+  
   const [errors, setErrors]             = useState<{ businessName?: string; upiId?: string }>({});
   
   // File Scanning State
@@ -23,11 +27,13 @@ export const SetupPage: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
 
+  // Verification Modal State
+  const [verifyUpiId, setVerifyUpiId] = useState<string | null>(null);
+
   const validate = () => {
     const next: typeof errors = {};
     if (!businessName.trim()) next.businessName = 'Business name is required';
-    if (!upiId.trim())        next.upiId = 'UPI ID is required';
-    else if (!upiId.includes('@')) next.upiId = 'Enter a valid UPI ID  (e.g. name@bank)';
+    if (upiIds.length === 0)  next.upiId = 'At least one UPI ID is required';
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -37,7 +43,8 @@ export const SetupPage: React.FC = () => {
     setProfile({
       id: generateShortId(),
       businessName: businessName.trim(),
-      upiId: upiId.trim().toLowerCase(),
+      upiId: upiIds[0], // Keep primary for backward compatibility
+      upiIds: upiIds,
       createdAt: Date.now(),
     });
     navigate('/');
@@ -59,16 +66,44 @@ export const SetupPage: React.FC = () => {
     }
     
     if (parsedPa) {
-      setUpiId(parsedPa);
       if (parsedPn && !businessName) {
         setBusinessName(parsedPn);
       }
       setErrors(prev => ({ ...prev, upiId: undefined }));
+      setVerifyUpiId(parsedPa);
       return true;
     } else {
       setErrors(prev => ({ ...prev, upiId: 'Invalid QR code. Please scan a valid UPI QR.' }));
       return false;
     }
+  };
+
+  const handleManualAdd = () => {
+    const val = draftUpiId.trim().toLowerCase();
+    if (!val) return;
+    if (!val.includes('@')) {
+      setErrors(prev => ({ ...prev, upiId: 'Enter a valid UPI ID (e.g. name@bank)' }));
+      return;
+    }
+    if (upiIds.includes(val)) {
+      setErrors(prev => ({ ...prev, upiId: 'UPI ID already added' }));
+      return;
+    }
+    
+    setErrors(prev => ({ ...prev, upiId: undefined }));
+    setVerifyUpiId(val);
+  };
+
+  const confirmAddUpiId = () => {
+    if (verifyUpiId && !upiIds.includes(verifyUpiId)) {
+      setUpiIds(prev => [...prev, verifyUpiId]);
+      setDraftUpiId('');
+    }
+    setVerifyUpiId(null);
+  };
+
+  const removeUpiId = (id: string) => {
+    setUpiIds(prev => prev.filter(u => u !== id));
   };
 
   // ─── File Upload Logic ───
@@ -183,6 +218,45 @@ export const SetupPage: React.FC = () => {
         </div>
       )}
 
+      {/* Verify QR Modal Overlay */}
+      {verifyUpiId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm fade-in">
+          <div className="card w-full max-w-[320px] p-6 flex flex-col items-center pop-in">
+            <h3 className="font-bold text-lg mb-1" style={{ color: 'var(--color-text-1)' }}>Verify QR Code</h3>
+            <p className="text-sm text-center mb-6 leading-relaxed" style={{ color: 'var(--color-text-3)' }}>
+              Scan this with your personal phone to ensure it opens your UPI app correctly.
+            </p>
+            
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+              <QRCodeSVG 
+                value={`upi://pay?pa=${verifyUpiId}&pn=${encodeURIComponent(businessName || 'Merchant')}`} 
+                size={180}
+              />
+            </div>
+            
+            <p className="font-semibold text-sm mb-6 text-center" style={{ color: 'var(--color-text-2)' }}>
+              {verifyUpiId}
+            </p>
+            
+            <div className="flex gap-3 w-full">
+              <button 
+                className="btn-secondary flex-1"
+                onClick={() => setVerifyUpiId(null)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-primary flex-1"
+                style={{ height: '46px', fontSize: '0.9rem' }} 
+                onClick={confirmAddUpiId}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero gradient top */}
       <div className="hero-header px-6 pt-16 pb-10 relative z-10">
         <div className="flex items-center gap-3 mb-8">
@@ -241,10 +315,10 @@ export const SetupPage: React.FC = () => {
             )}
           </div>
 
-          {/* UPI ID */}
+          {/* UPI IDs List */}
           <div className="flex flex-col gap-1.5">
             <label className="section-label px-1 flex justify-between items-end">
-              <span>UPI ID</span>
+              <span>Verified UPI IDs</span>
               
               <div className="relative">
                 <button
@@ -290,48 +364,73 @@ export const SetupPage: React.FC = () => {
                 )}
               </div>
             </label>
-            <div className="relative">
-              <span
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
-                style={{ color: 'var(--color-text-3)' }}
+
+            {/* List of added IDs */}
+            {upiIds.length > 0 && (
+              <div className="flex flex-col gap-2 mb-2">
+                {upiIds.map((id, index) => (
+                  <div key={index} className="card-soft px-4 py-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="icon-circle w-8 h-8" style={{ background: 'var(--color-primary-dim)' }}>
+                        <AtSign size={14} strokeWidth={2} color="var(--color-primary)" />
+                      </div>
+                      <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-1)' }}>
+                        {id}
+                      </span>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => removeUpiId(id)}
+                      className="p-1.5 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-90 transition-all"
+                    >
+                      <Trash2 size={16} color="var(--color-danger)" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add New ID Input */}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <span
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: 'var(--color-text-3)' }}
+                >
+                  <Plus size={16} strokeWidth={2} />
+                </span>
+                <input
+                  className="input-field"
+                  placeholder="Add another UPI ID (name@bank)"
+                  value={draftUpiId}
+                  onChange={e => setDraftUpiId(e.target.value)}
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  inputMode="email"
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleManualAdd();
+                    }
+                  }}
+                />
+              </div>
+              <button 
+                type="button"
+                onClick={handleManualAdd}
+                disabled={!draftUpiId.trim()}
+                className="h-[52px] px-5 rounded-xl font-bold text-sm text-white transition-all active:scale-95 disabled:opacity-50"
+                style={{ background: 'var(--color-primary)' }}
               >
-                <AtSign size={16} strokeWidth={1.75} />
-              </span>
-              <input
-                className="input-field"
-                placeholder="yourname@bank"
-                value={upiId}
-                onChange={e => setUpiId(e.target.value)}
-                autoCapitalize="none"
-                autoComplete="off"
-                inputMode="email"
-              />
+                Add
+              </button>
             </div>
+            
             {errors.upiId && (
-              <p className="text-xs font-medium ml-1" style={{ color: 'var(--color-danger)' }}>
+              <p className="text-xs font-medium ml-1 mt-1" style={{ color: 'var(--color-danger)' }}>
                 {errors.upiId}
               </p>
             )}
-          </div>
-
-          {/* Disclaimer */}
-          <div
-            className="rounded-2xl p-4 flex gap-3"
-            style={{ background: 'rgba(232,67,90,0.05)', border: '1px solid rgba(232,67,90,0.10)' }}
-          >
-            <div
-              className="icon-circle w-7 h-7 flex-shrink-0 mt-0.5"
-              style={{ background: 'rgba(232,67,90,0.10)' }}
-            >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="7" r="6" stroke="#E8435A" strokeWidth="1.5"/>
-                <path d="M7 4.5V7.5" stroke="#E8435A" strokeWidth="1.5" strokeLinecap="round"/>
-                <circle cx="7" cy="9.5" r="0.75" fill="#E8435A"/>
-              </svg>
-            </div>
-            <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
-              This app only generates QR codes. All payments flow through your bank's UPI infrastructure. No money is held or processed here.
-            </p>
           </div>
 
           <div className="flex-1" />
@@ -339,7 +438,7 @@ export const SetupPage: React.FC = () => {
           <button
             className="btn-primary w-full"
             onClick={handleSave}
-            disabled={isScanning || showCamera}
+            disabled={isScanning || showCamera || upiIds.length === 0}
           >
             Continue
             <ArrowRight size={18} strokeWidth={2} />

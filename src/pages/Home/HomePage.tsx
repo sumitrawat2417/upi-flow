@@ -51,7 +51,11 @@ export const HomePage: React.FC = () => {
           <div>
             <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-0.5">Merchant</p>
             <p className="text-white font-bold text-base leading-tight">{profile?.businessName ?? 'Setup required'}</p>
-            <p className="text-white/50 text-xs mt-0.5">{profile?.upiId ?? '—'}</p>
+            <p className="text-white/50 text-xs mt-0.5">
+              {profile?.upiIds && profile.upiIds.length > 0 
+                ? `${profile.upiIds.length} Active UPI ID${profile.upiIds.length > 1 ? 's' : ''}` 
+                : (profile?.upiId ?? '—')}
+            </p>
           </div>
 
           {/* Action icons */}

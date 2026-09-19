@@ -2,7 +2,8 @@
 export interface MerchantProfile {
   id: string;
   businessName: string;
-  upiId: string;
+  upiId: string;       // Primary or legacy UPI ID
+  upiIds: string[];    // Array of all verified UPI IDs
   createdAt: number;
 }
 

@@ -5,53 +5,20 @@ import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { PaymentSession, Payment, SplitResult, MerchantProfile } from '../../types';
 import { generateQRId, generateSessionId, generateShortId, formatAmount } from '../../core/splitter';
 
-/* ─── QR Code component (deterministic pattern) ──────────────── */
-const QRCode: React.FC<{ id: string; size?: number }> = ({ id, size = 200 }) => {
-  const seed = id.split('').reduce((acc, c, i) => acc + c.charCodeAt(0) * (i + 1), 0);
-  const cells = Array.from({ length: 49 }, (_, i) => {
-    const r = Math.floor(i / 7), c = i % 7;
-    // Corner finder patterns
-    if ((r < 2 && c < 2) || (r < 2 && c > 4) || (r > 4 && c < 2)) return true;
-    // Data
-    return ((seed * (i + 11) + i * 37) % 23) < 12;
-  });
-
-  const cellSize = (size - 40) / 7;
-
-  return (
-    <div
-      style={{
-        width: size, height: size,
-        background: 'white',
-        borderRadius: 20,
-        padding: 20,
-        boxShadow: '0 4px 24px rgba(232,67,90,0.12), 0 1px 4px rgba(0,0,0,0.06)',
-      }}
-    >
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(7, ${cellSize}px)`, gap: 3 }}>
-        {cells.map((filled, i) => (
-          <div
-            key={i}
-            style={{
-              width: cellSize, height: cellSize,
-              background: filled ? '#1A1A2E' : 'transparent',
-              borderRadius: 3,
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
+import { QRCodeSVG } from 'qrcode.react';
 
 /* ─── Build session ──────────────────────────────────────────── */
-function buildSession(amount: number, split: SplitResult, merchantId: string, upiId: string): PaymentSession {
-  const payments: Payment[] = split.amounts.map(amt => ({
-    id: generateQRId(),
-    amount: amt,
-    upiUri: `upi://pay?pa=${encodeURIComponent(upiId)}&pn=&am=${amt}&tn=${generateShortId()}&cu=INR`,
-    status: 'pending',
-  }));
+function buildSession(amount: number, split: SplitResult, merchantId: string, upiIds: string[]): PaymentSession {
+  const validUpiIds = upiIds && upiIds.length > 0 ? upiIds : [''];
+  const payments: Payment[] = split.amounts.map((amt, i) => {
+    const upiId = validUpiIds[i % validUpiIds.length];
+    return {
+      id: generateQRId(),
+      amount: amt,
+      upiUri: `upi://pay?pa=${encodeURIComponent(upiId)}&pn=&am=${amt}&tn=${generateShortId()}&cu=INR`,
+      status: 'pending',
+    };
+  });
   payments[0].status = 'active';
   return {
     id: generateSessionId(),
@@ -75,7 +42,13 @@ export const SessionPage: React.FC = () => {
 
   useEffect(() => {
     if (!amount || !split) { navigate('/'); return; }
-    const s = buildSession(amount, split, profile?.id ?? 'default', profile?.upiId ?? '');
+    // Pass upiIds array for round-robin
+    const s = buildSession(
+      amount, 
+      split, 
+      profile?.id ?? 'default', 
+      profile?.upiIds?.length ? profile.upiIds : [profile?.upiId ?? '']
+    );
     setSession(s);
     setSessions(prev => [s, ...prev]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -269,7 +242,12 @@ export const SessionPage: React.FC = () => {
               </div>
             </div>
 
-            <QRCode id={activePayment.id} size={200} />
+            <div 
+              className="bg-white p-4 rounded-3xl border border-gray-100"
+              style={{ boxShadow: '0 4px 24px rgba(232,67,90,0.12), 0 1px 4px rgba(0,0,0,0.06)' }}
+            >
+              <QRCodeSVG value={activePayment.upiUri} size={200} />
+            </div>
 
             <p className="text-xs text-center leading-relaxed" style={{ color: 'var(--color-text-3)' }}>
               Show this QR. Confirm from your bank app, then tap below.
