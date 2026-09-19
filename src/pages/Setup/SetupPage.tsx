@@ -254,7 +254,7 @@ export const SetupPage: React.FC = () => {
         </div>
 
         <h1 className="text-white font-extrabold text-[2rem] leading-tight tracking-tight mb-2">
-          Set up your<br />merchant profile.
+          Set up your<br />UPI Flow account.
         </h1>
         <p className="text-white/60 text-sm leading-relaxed">
           All data stays on this device. No accounts, no cloud.
@@ -269,7 +269,7 @@ export const SetupPage: React.FC = () => {
         >
           {/* Business Name */}
           <div className="flex flex-col gap-1.5">
-            <label className="section-label px-1">Business Name</label>
+            <label className="section-label px-1">Business Name or Name</label>
             <div className="relative">
               <span
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -396,6 +396,10 @@ export const SetupPage: React.FC = () => {
             Continue
             <ArrowRight size={18} strokeWidth={2} />
           </button>
+          
+          <p className="text-center text-[10px] font-medium tracking-wide mt-2" style={{ color: 'var(--color-text-3)' }}>
+            Designed & Developed by ManSula DivLabs & ManSula
+          </p>
         </div>
       </div>
     </div>
