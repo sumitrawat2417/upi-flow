@@ -1,32 +1,49 @@
-# React + TypeScript + Vite
+# UPI Flow
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+UPI Flow is a local-first merchant tool for instantly generating and splitting smart UPI QR codes. 
+It features a premium UI/UX design with a warm coral aesthetic, taking inspiration from top-tier modern finance apps like Quantro.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Local-First & Private:** All your data (profile, history, settings) stays entirely on your device via `localStorage`. No cloud accounts required.
+- **Smart Splitting:** Large payment amounts can be automatically split based on custom thresholds to avoid limits, or split into equal parts.
+- **Premium Design System:**
+  - Modern, responsive, mobile-first design.
+  - Light mode (default) and dark mode (via context & system preference).
+  - High-end aesthetics: coral gradients, subtle shadows, clean typography using the `Outfit` font, and elegant micro-animations.
+- **Payment Lifecycle:** Track active sessions and visually verify collected payments.
+- **Zero Fees / Direct to Bank:** UPI Flow only generates the QR code payload; the actual money transfer happens entirely through the customer's UPI app directly to the merchant's bank account.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **React 18**
+- **TypeScript**
+- **Vite**
+- **Tailwind CSS v4** (with native CSS nesting and theming)
+- **React Router v6**
+- **Lucide Icons**
 
-## Expanding the Oxlint configuration
+## Getting Started
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+2. **Run the development server:**
+   ```bash
+   npm run dev
+   ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+3. **Build for production:**
+   ```bash
+   npm run build
+   ```
+
+## Workflow
+
+1. **Setup:** On first load, provide your Business Name and a valid UPI ID (e.g. `merchant@bank`).
+2. **Amount Entry:** Enter the desired amount on the minimal numeric keypad.
+3. **Split Strategy:** If the amount exceeds your split threshold (configurable in Settings), you can choose to auto-split it or collect as one single payment.
+4. **Session Collection:** For a session, you are shown sequential QR codes. After your customer successfully pays a QR code via their UPI app, click 'Confirm Payment Received' to proceed to the next QR code.
+5. **History & Settings:** You can review all completed and active sessions in History, and toggle dark/light mode or reset your data from Settings.
