@@ -45,7 +45,7 @@ export const HomePage: React.FC = () => {
   return (
     <div className="app-shell fade-in">
       {/* ── Compact header ── */}
-      <div className="hero-header px-5 pt-12 pb-5 relative z-10">
+      <div className="hero-header px-6 pt-16 pb-14 relative z-10 flex-shrink-0">
         <div className="flex items-center justify-between">
           {/* Merchant info */}
           <div>
@@ -99,7 +99,7 @@ export const HomePage: React.FC = () => {
         }}
       >
         {/* Amount display */}
-        <div className="flex flex-col items-center justify-center px-6 pt-8 pb-4">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pt-6 pb-2">
           <p className="section-label mb-4">Amount to collect</p>
 
           {/* Amount */}
