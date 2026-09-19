@@ -23,7 +23,7 @@ export const HomePage: React.FC = () => {
   const activeMode = settings.paymentMode || profile?.upiIds?.[0] || profile?.upiId || '';
   let modeText = '—';
   if (activeMode) {
-    modeText = profile?.upiLabels?.[activeMode] || activeMode;
+    modeText = profile?.upiLabels?.[activeMode] || (activeMode === profile?.upiId ? (profile?.businessName || activeMode) : activeMode);
   }
 
   const handleKey = (key: string) => {
@@ -60,14 +60,14 @@ export const HomePage: React.FC = () => {
             onClick={() => { if (profile?.upiIds && profile.upiIds.length > 1) setShowModeSelector(true); }}
           >
             <div className="flex items-center gap-1.5 mb-0.5">
-              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Merchant</p>
+              <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wider">Receiving at</p>
               {profile?.upiIds && profile.upiIds.length > 1 && (
                 <ChevronDown size={12} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
               )}
             </div>
-            <p className="text-white font-bold text-base leading-tight">{profile?.businessName ?? 'Setup required'}</p>
+            <p className="text-white font-bold text-base leading-tight">{modeText || 'Setup required'}</p>
             <p className="text-white/50 text-xs mt-0.5 truncate max-w-[200px]">
-              {modeText}
+              {activeMode}
             </p>
           </div>
 
