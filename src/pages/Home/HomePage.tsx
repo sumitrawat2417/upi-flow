@@ -12,7 +12,7 @@ export const HomePage: React.FC = () => {
   const navigate  = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const [profile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
-  const [settings] = useLocalStorage<AppSettings>('app_settings', { splitThreshold: 2000 });
+  const [settings, setSettings] = useLocalStorage<AppSettings>('app_settings', { splitThreshold: 2000 });
   const [raw, setRaw] = useState('');
   const [showModeSelector, setShowModeSelector] = useState(false);
 
