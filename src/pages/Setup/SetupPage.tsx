@@ -221,14 +221,14 @@ export const SetupPage: React.FC = () => {
                 className="btn-secondary flex-1"
                 onClick={() => setVerifyUpiId(null)}
               >
-                Go Back
+                Cancel
               </button>
               <button 
                 className="btn-primary flex-1"
                 style={{ height: '46px', fontSize: '0.9rem' }} 
                 onClick={confirmAndSave}
               >
-                Looks Good!
+                Confirm
               </button>
             </div>
           </div>
