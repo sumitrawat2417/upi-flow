@@ -220,7 +220,7 @@ export const SessionPage: React.FC = () => {
 
         {/* Progress dots */}
         <div className="flex gap-2 mt-2">
-          {session.payments.map((p, i) => (
+          {session.payments.map((p) => (
             <div
               key={p.id}
               className="h-1.5 flex-1 rounded-full transition-all"

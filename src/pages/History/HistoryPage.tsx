@@ -71,9 +71,9 @@ const SessionCard: React.FC<{ session: PaymentSession }> = ({ session }) => {
 
       {open && (
         <div style={{ borderTop: '1px solid var(--color-border)' }}>
-          {session.payments.map((p, i) => (
+          {(session.payments || []).map((p, i) => (
             <div
-              key={p.id}
+              key={p.id || i}
               className="flex items-center justify-between px-5 py-3"
               style={i > 0 ? { borderTop: '1px solid var(--color-border)' } : {}}
             >
@@ -91,10 +91,10 @@ const SessionCard: React.FC<{ session: PaymentSession }> = ({ session }) => {
                     : <Clock size={12} strokeWidth={2} color="#D97706" />
                   }
                 </div>
-                <span className="text-xs font-semibold" style={{ color: 'var(--color-text-2)' }}>{p.id}</span>
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-text-2)' }}>{p.id || `Payment ${i+1}`}</span>
               </div>
               <span className="text-sm font-bold" style={{ color: 'var(--color-text-1)' }}>
-                ₹{formatAmount(p.amount)}
+                ₹{formatAmount(p.amount || 0)}
               </span>
             </div>
           ))}
@@ -107,7 +107,8 @@ const SessionCard: React.FC<{ session: PaymentSession }> = ({ session }) => {
 export const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
   const [sessions] = useLocalStorage<PaymentSession[]>('payment_sessions', []);
-  const grouped    = groupByDate(sessions);
+  const validSessions = sessions.filter(s => s && s.id && s.createdAt && Array.isArray(s.payments));
+  const grouped    = groupByDate(validSessions);
 
   return (
     <div className="app-shell fade-in">

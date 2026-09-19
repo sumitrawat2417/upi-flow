@@ -4,16 +4,16 @@ import { ChevronLeft, Sun, Moon, Trash2, CreditCard, LayoutGrid } from 'lucide-r
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useTheme }        from '../../context/ThemeContext';
 import type { AppSettings, MerchantProfile } from '../../types';
-import { formatAmount } from '../../core/splitter';
+
 
 const THRESHOLDS = [1000, 2000, 5000, 10000];
 
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const [profile, setProfile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
+  const [profile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
   const [settings, setSettings] = useLocalStorage<AppSettings>('app_settings', { splitThreshold: 2000 });
-  const [, setSessions] = useLocalStorage<unknown[]>('payment_sessions', []);
+  useLocalStorage<unknown[]>('payment_sessions', []);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const reset = () => {

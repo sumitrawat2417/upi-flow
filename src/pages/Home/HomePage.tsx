@@ -4,7 +4,7 @@ import { History, Settings, Delete, ArrowRight, Sun, Moon } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useTheme } from '../../context/ThemeContext';
 import type { MerchantProfile, AppSettings } from '../../types';
-import { formatAmount } from '../../core/splitter';
+
 
 const KEYS = ['1','2','3','4','5','6','7','8','9','.','0','del'];
 
