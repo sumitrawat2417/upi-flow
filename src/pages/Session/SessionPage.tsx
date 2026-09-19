@@ -177,6 +177,7 @@ export const SessionPage: React.FC = () => {
           <div className="flex gap-3 mt-1">
             <button
               className="btn-secondary flex-1"
+              style={{ height: '58px' }}
               onClick={() => navigate('/history')}
             >
               <RefreshCw size={15} strokeWidth={2} />
