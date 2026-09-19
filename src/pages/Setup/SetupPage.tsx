@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, AtSign, ArrowRight } from 'lucide-react';
+import { Building2, AtSign, ArrowRight, QrCode, Loader2 } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import type { MerchantProfile } from '../../types';
 import { generateShortId } from '../../core/splitter';
+import QrScanner from 'qr-scanner';
 
 export const SetupPage: React.FC = () => {
   const navigate = useNavigate();
@@ -11,6 +12,8 @@ export const SetupPage: React.FC = () => {
   const [businessName, setBusinessName] = useState('');
   const [upiId, setUpiId]               = useState('');
   const [errors, setErrors]             = useState<{ businessName?: string; upiId?: string }>({});
+  const [isScanning, setIsScanning]     = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validate = () => {
     const next: typeof errors = {};
@@ -32,11 +35,63 @@ export const SetupPage: React.FC = () => {
     navigate('/');
   };
 
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsScanning(true);
+    try {
+      const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
+      // Depending on the library version, the result can be an object { data: string } or a string directly.
+      const text = typeof result === 'object' && result !== null && 'data' in result ? (result as any).data : result;
+      
+      let parsedPa = '';
+      let parsedPn = '';
+      
+      try {
+        const url = new URL(text);
+        if (url.protocol === 'upi:') {
+          parsedPa = url.searchParams.get('pa') || '';
+          parsedPn = url.searchParams.get('pn') || '';
+        }
+      } catch {
+        // Not a URL, treat as raw text
+        if (text.includes('@')) parsedPa = text;
+      }
+      
+      if (parsedPa) {
+        setUpiId(parsedPa);
+        if (parsedPn && !businessName) {
+          setBusinessName(parsedPn);
+        }
+        setErrors(prev => ({ ...prev, upiId: undefined }));
+      } else {
+        setErrors(prev => ({ ...prev, upiId: 'Invalid QR code. Please scan a valid UPI QR.' }));
+      }
+    } catch (err) {
+      console.error(err);
+      setErrors(prev => ({ ...prev, upiId: 'Could not detect QR code in image.' }));
+    } finally {
+      setIsScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <div className="app-shell fade-in">
+      {/* Hidden file input for camera/gallery */}
+      <input
+        type="file"
+        accept="image/*"
+        capture="environment"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        style={{ display: 'none' }}
+      />
+
       {/* Hero gradient top */}
       <div className="hero-header px-6 pt-16 pb-10 relative z-10">
-        {/* Logo mark */}
         <div className="flex items-center gap-3 mb-8">
           <div
             className="w-10 h-10 rounded-2xl flex items-center justify-center"
@@ -95,7 +150,23 @@ export const SetupPage: React.FC = () => {
 
           {/* UPI ID */}
           <div className="flex flex-col gap-1.5">
-            <label className="section-label px-1">UPI ID</label>
+            <label className="section-label px-1 flex justify-between items-end">
+              <span>UPI ID</span>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95"
+                style={{ color: 'var(--color-primary)' }}
+                type="button"
+                disabled={isScanning}
+              >
+                {isScanning ? (
+                  <Loader2 size={12} className="animate-spin" />
+                ) : (
+                  <QrCode size={12} strokeWidth={2.5} />
+                )}
+                {isScanning ? 'Scanning...' : 'Scan QR'}
+              </button>
+            </label>
             <div className="relative">
               <span
                 className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
@@ -145,6 +216,7 @@ export const SetupPage: React.FC = () => {
           <button
             className="btn-primary w-full"
             onClick={handleSave}
+            disabled={isScanning}
           >
             Continue
             <ArrowRight size={18} strokeWidth={2} />
