@@ -17,7 +17,8 @@ export const SetupPage: React.FC = () => {
   const [isScanning, setIsScanning]     = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Live Camera State
+  // Live Camera & Menu State
+  const [showScanMenu, setShowScanMenu] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const qrScannerRef = useRef<QrScanner | null>(null);
@@ -245,31 +246,48 @@ export const SetupPage: React.FC = () => {
             <label className="section-label px-1 flex justify-between items-end">
               <span>UPI ID</span>
               
-              <div className="flex items-center gap-3">
+              <div className="relative">
                 <button
-                  onClick={() => setShowCamera(true)}
-                  className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95"
-                  style={{ color: 'var(--color-primary)' }}
-                  type="button"
-                  disabled={isScanning || showCamera}
-                >
-                  <Camera size={12} strokeWidth={2.5} />
-                  Camera
-                </button>
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95"
-                  style={{ color: 'var(--color-primary)' }}
+                  onClick={() => setShowScanMenu(!showScanMenu)}
+                  className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95 px-2 py-1 rounded-md"
+                  style={{ color: 'var(--color-primary)', background: 'var(--color-primary-dim)' }}
                   type="button"
                   disabled={isScanning || showCamera}
                 >
                   {isScanning ? (
                     <Loader2 size={12} className="animate-spin" />
                   ) : (
-                    <Image size={12} strokeWidth={2.5} />
+                    <QrCode size={12} strokeWidth={2.5} />
                   )}
-                  {isScanning ? 'Wait...' : 'Album'}
+                  {isScanning ? 'Scanning...' : 'Scan Image'}
                 </button>
+                
+                {showScanMenu && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-20" 
+                      onClick={() => setShowScanMenu(false)}
+                    />
+                    <div className="absolute right-0 mt-1 w-36 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-30 overflow-hidden fade-in origin-top-right dark:bg-[#1A1A2E] dark:border-gray-800">
+                      <button
+                        className="w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 active:bg-gray-100 transition-colors dark:hover:bg-[#222236] dark:text-gray-100"
+                        onClick={() => { setShowCamera(true); setShowScanMenu(false); }}
+                        type="button"
+                      >
+                        <Camera size={14} className="text-gray-500 dark:text-gray-400" />
+                        Use Camera
+                      </button>
+                      <button
+                        className="w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 active:bg-gray-100 transition-colors dark:hover:bg-[#222236] dark:text-gray-100"
+                        onClick={() => { fileInputRef.current?.click(); setShowScanMenu(false); }}
+                        type="button"
+                      >
+                        <Image size={14} className="text-gray-500 dark:text-gray-400" />
+                        Upload Album
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </label>
             <div className="relative">
