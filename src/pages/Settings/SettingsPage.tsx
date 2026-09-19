@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate }     from 'react-router-dom';
-import { ChevronLeft, Sun, Moon, Trash2, CreditCard, LayoutGrid } from 'lucide-react';
+import { ChevronLeft, Sun, Moon, Trash2, CreditCard, LayoutGrid, Plus, AtSign, ArrowRight } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useTheme }        from '../../context/ThemeContext';
 import type { AppSettings, MerchantProfile } from '../../types';
+import { QRCodeSVG } from 'qrcode.react';
 
 
 const THRESHOLDS = [1000, 2000, 5000, 10000];
@@ -11,14 +12,56 @@ const THRESHOLDS = [1000, 2000, 5000, 10000];
 export const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const [profile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
+  const [profile, setProfile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
   const [settings, setSettings] = useLocalStorage<AppSettings>('app_settings', { splitThreshold: 2000 });
   useLocalStorage<unknown[]>('payment_sessions', []);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // Add UPI State
+  const [showAddUpi, setShowAddUpi] = useState(false);
+  const [newUpiId, setNewUpiId] = useState('');
+  const [upiError, setUpiError] = useState<string | undefined>();
+  const [verifyNewUpiId, setVerifyNewUpiId] = useState<string | null>(null);
+
   const reset = () => {
     localStorage.clear();
     navigate('/setup');
+  };
+
+  const handleVerifyNewUpi = () => {
+    const val = newUpiId.trim().toLowerCase();
+    if (!val) return;
+    if (!val.includes('@')) {
+      setUpiError('Enter a valid UPI ID (e.g. name@bank)');
+      return;
+    }
+    if (profile?.upiIds?.includes(val)) {
+      setUpiError('UPI ID already added');
+      return;
+    }
+    setUpiError(undefined);
+    setVerifyNewUpiId(val);
+  };
+
+  const confirmAddNewUpi = () => {
+    if (!profile || !verifyNewUpiId) return;
+    
+    setProfile({
+      ...profile,
+      upiIds: [...(profile.upiIds || [profile.upiId]), verifyNewUpiId]
+    });
+    
+    setNewUpiId('');
+    setVerifyNewUpiId(null);
+    setShowAddUpi(false);
+  };
+
+  const removeUpiId = (idToRemove: string) => {
+    if (!profile || !profile.upiIds || profile.upiIds.length <= 1) return;
+    setProfile({
+      ...profile,
+      upiIds: profile.upiIds.filter(id => id !== idToRemove)
+    });
   };
 
   return (
@@ -51,7 +94,7 @@ export const SettingsPage: React.FC = () => {
         <p className="section-label px-1">Merchant Profile</p>
         <div className="card overflow-hidden">
           <div className="flex items-center gap-3 px-5 py-4">
-            <div className="icon-circle w-10 h-10" style={{ background: 'var(--color-primary-dim)' }}>
+            <div className="icon-circle w-10 h-10 flex-shrink-0" style={{ background: 'var(--color-primary-dim)' }}>
               <CreditCard size={18} strokeWidth={1.75} color="var(--color-primary)" />
             </div>
             <div className="flex-1 min-w-0">
@@ -63,6 +106,51 @@ export const SettingsPage: React.FC = () => {
               </p>
             </div>
           </div>
+        </div>
+
+        {/* UPI IDs Management */}
+        <p className="section-label px-1 mt-1">UPI IDs</p>
+        <div className="card px-5 py-4 flex flex-col gap-3">
+          <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
+            Payments are automatically distributed round-robin across these IDs to prevent limits.
+          </p>
+          
+          <div className="flex flex-col">
+            {profile?.upiIds?.map((id, index) => (
+              <div key={id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 dark:border-gray-800">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="icon-circle w-8 h-8 flex-shrink-0" style={{ background: 'var(--color-surface-2)' }}>
+                    <AtSign size={14} strokeWidth={2} color="var(--color-text-2)" />
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-1)' }}>
+                      {id}
+                    </span>
+                    {index === 0 && (
+                       <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5">Primary</span>
+                    )}
+                  </div>
+                </div>
+                {profile.upiIds!.length > 1 && (
+                  <button 
+                    onClick={() => removeUpiId(id)}
+                    className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-90 transition-all flex-shrink-0 ml-2"
+                  >
+                    <Trash2 size={16} color="var(--color-danger)" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setShowAddUpi(true)}
+            className="flex items-center justify-center gap-2 w-full py-3 mt-1 rounded-xl text-sm font-bold transition-all active:scale-[0.98]"
+            style={{ background: 'var(--color-primary-dim)', color: 'var(--color-primary)' }}
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Add Another UPI ID
+          </button>
         </div>
 
         {/* Split threshold */}
@@ -187,6 +275,100 @@ export const SettingsPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Add UPI Modal Overlay */}
+      {showAddUpi && !verifyNewUpiId && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm fade-in sm:items-center sm:p-5">
+          <div className="bg-white dark:bg-[#1A1A2E] w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 flex flex-col gap-5 slide-up sm:pop-in pb-10 sm:pb-6">
+            <div>
+              <h3 className="font-bold text-lg" style={{ color: 'var(--color-text-1)' }}>Add UPI ID</h3>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>Enter another UPI ID for round-robin payments.</p>
+            </div>
+            
+            <div className="flex flex-col gap-1.5">
+              <div className="relative">
+                <span
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                  style={{ color: 'var(--color-text-3)' }}
+                >
+                  <AtSign size={16} strokeWidth={1.75} />
+                </span>
+                <input
+                  className="input-field"
+                  placeholder="yourname@bank"
+                  value={newUpiId}
+                  onChange={e => setNewUpiId(e.target.value)}
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  inputMode="email"
+                />
+              </div>
+              {upiError && (
+                <p className="text-xs font-medium ml-1" style={{ color: 'var(--color-danger)' }}>
+                  {upiError}
+                </p>
+              )}
+            </div>
+
+            <div className="flex gap-3 mt-2">
+              <button 
+                className="btn-secondary flex-1"
+                onClick={() => { setShowAddUpi(false); setNewUpiId(''); setUpiError(undefined); }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn-primary flex-1"
+                style={{ height: '46px', fontSize: '0.9rem' }} 
+                onClick={handleVerifyNewUpi}
+              >
+                Verify QR
+                <ArrowRight size={16} strokeWidth={2} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Verify QR Modal Overlay */}
+      {verifyNewUpiId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-5 bg-black/60 backdrop-blur-sm fade-in">
+          <div className="card w-full max-w-[320px] p-6 flex flex-col items-center pop-in">
+            <h3 className="font-bold text-lg mb-1" style={{ color: 'var(--color-text-1)' }}>Verify QR Code</h3>
+            <p className="text-sm text-center mb-6 leading-relaxed" style={{ color: 'var(--color-text-3)' }}>
+              Scan this with your personal phone to ensure it opens your UPI app correctly.
+            </p>
+            
+            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6">
+              <QRCodeSVG 
+                value={`upi://pay?pa=${verifyNewUpiId}&pn=${encodeURIComponent(profile?.businessName || 'Merchant')}`} 
+                size={180}
+              />
+            </div>
+            
+            <p className="font-semibold text-sm mb-6 text-center" style={{ color: 'var(--color-text-2)' }}>
+              {verifyNewUpiId}
+            </p>
+            
+            <div className="flex gap-3 w-full">
+              <button 
+                className="btn-secondary flex-1"
+                onClick={() => setVerifyNewUpiId(null)}
+              >
+                Go Back
+              </button>
+              <button 
+                className="btn-primary flex-1"
+                style={{ height: '46px', fontSize: '0.9rem' }} 
+                onClick={confirmAddNewUpi}
+              >
+                Looks Good!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
