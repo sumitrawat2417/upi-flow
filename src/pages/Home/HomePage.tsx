@@ -224,7 +224,7 @@ export const HomePage: React.FC = () => {
                 >
                   <div className="min-w-0 pr-4">
                     <p className="font-bold text-sm truncate" style={{ color: activeMode === id ? 'var(--color-primary)' : 'var(--color-text-1)' }}>
-                      {profile.upiLabels?.[id] || (index === 0 ? 'Primary Account' : id)}
+                      {profile.upiLabels?.[id] || (index === 0 ? profile.businessName : id)}
                     </p>
                     <p className="text-xs mt-0.5 truncate" style={{ color: activeMode === id ? 'var(--color-primary)' : 'var(--color-text-3)', opacity: 0.8 }}>
                       {id}

@@ -265,7 +265,7 @@ export const SessionPage: React.FC = () => {
 
             {(() => {
               const pa = new URLSearchParams(activePayment.upiUri.split('?')[1]).get('pa') || '';
-              const label = profile?.upiLabels?.[pa] || (pa === profile?.upiId ? 'Primary Account' : pa);
+              const label = profile?.upiLabels?.[pa] || (pa === profile?.upiId ? profile?.businessName : pa);
               return (
                 <div className="flex flex-col items-center -mt-1 mb-1 bg-gray-50 dark:bg-gray-800/50 px-4 py-2 rounded-xl">
                   <span className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--color-text-3)' }}>Receiving Account</span>

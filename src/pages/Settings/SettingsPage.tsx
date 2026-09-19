@@ -35,11 +35,13 @@ export const SettingsPage: React.FC = () => {
 
   const processScanResult = (text: string) => {
     let parsedPa = '';
+    let parsedPn = '';
     
     try {
       const url = new URL(text);
       if (url.protocol === 'upi:') {
         parsedPa = url.searchParams.get('pa') || '';
+        parsedPn = url.searchParams.get('pn') || '';
       }
     } catch {
       if (text.includes('@')) parsedPa = text;
@@ -48,6 +50,9 @@ export const SettingsPage: React.FC = () => {
     if (parsedPa) {
       setUpiError(undefined);
       setNewUpiId(parsedPa);
+      if (parsedPn) {
+        setNewUpiLabel(decodeURIComponent(parsedPn));
+      }
       return true;
     } else {
       setUpiError('Invalid QR code. Please scan a valid UPI QR.');
@@ -279,7 +284,7 @@ export const SettingsPage: React.FC = () => {
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="text-sm font-semibold truncate" style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-text-1)' }}>
-                        {profile.upiLabels?.[id] || (index === 0 ? 'Primary Account' : id)}
+                        {profile.upiLabels?.[id] || (index === 0 ? profile.businessName : id)}
                       </span>
                       <span className="text-[10px] font-bold uppercase tracking-wider mt-0.5 truncate" style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-text-3)', opacity: isActive ? 0.8 : 1 }}>
                         {index === 0 ? `PRIMARY • ${id}` : id}
@@ -441,7 +446,7 @@ export const SettingsPage: React.FC = () => {
           <div className="bg-white dark:bg-[#1A1A2E] w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-6 flex flex-col gap-5 slide-up sm:pop-in pb-10 sm:pb-6">
             <div>
               <h3 className="font-bold text-lg" style={{ color: 'var(--color-text-1)' }}>Add UPI ID</h3>
-              <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>Enter another UPI ID for round-robin payments.</p>
+              <p className="text-sm mt-1" style={{ color: 'var(--color-text-3)' }}>Enter another UPI ID to route payments to.</p>
             </div>
             
             <div className="flex flex-col gap-3">
