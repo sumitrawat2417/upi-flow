@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CheckCircle2, Lock, Home, ChevronLeft, RefreshCw } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
-import type { PaymentSession, Payment, SplitResult, MerchantProfile } from '../../types';
+import type { PaymentSession, Payment, SplitResult, MerchantProfile, AppSettings } from '../../types';
 import { generateQRId, generateSessionId, generateShortId, formatAmount } from '../../core/splitter';
 
 import { QRCodeSVG } from 'qrcode.react';
@@ -37,17 +37,31 @@ export const SessionPage: React.FC = () => {
   const split: SplitResult = state?.split;
 
   const [profile]  = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
+  const [settings] = useLocalStorage<AppSettings>('app_settings', { splitThreshold: 2000 });
   const [, setSessions] = useLocalStorage<PaymentSession[]>('payment_sessions', []);
   const [session, setSession] = useState<PaymentSession | null>(null);
 
   useEffect(() => {
     if (!amount || !split) { navigate('/'); return; }
-    // Pass upiIds array for round-robin
+    
+    // Determine which UPI IDs to use based on settings
+    let sessionUpiIds = [profile?.upiId ?? ''];
+    if (profile?.upiIds?.length) {
+      if (settings.paymentMode === 'all' || !settings.paymentMode) {
+        sessionUpiIds = profile.upiIds;
+      } else if (profile.upiIds.includes(settings.paymentMode)) {
+        sessionUpiIds = [settings.paymentMode];
+      } else {
+        sessionUpiIds = profile.upiIds;
+      }
+    }
+
+    // Pass upiIds array for routing
     const s = buildSession(
       amount, 
       split, 
       profile?.id ?? 'default', 
-      profile?.upiIds?.length ? profile.upiIds : [profile?.upiId ?? '']
+      sessionUpiIds
     );
     setSession(s);
     setSessions(prev => [s, ...prev]);

@@ -43,5 +43,6 @@ export interface SplitResult {
 // ─── App Settings ─────────────────────────────────────────────────
 export interface AppSettings {
   splitThreshold: number;   // default 2000
+  paymentMode?: string;     // 'all' for round-robin, or specific upiId
   activeProfileId?: string;
 }

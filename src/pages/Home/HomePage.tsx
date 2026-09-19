@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, Settings, Delete, ArrowRight, Sun, Moon } from 'lucide-react';
+import { History, Settings, Delete, ArrowRight, Sun, Moon, ChevronDown, Check, X } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useTheme } from '../../context/ThemeContext';
 import type { MerchantProfile, AppSettings } from '../../types';
@@ -14,10 +14,23 @@ export const HomePage: React.FC = () => {
   const [profile] = useLocalStorage<MerchantProfile | null>('merchant_profile', null);
   const [settings] = useLocalStorage<AppSettings>('app_settings', { splitThreshold: 2000 });
   const [raw, setRaw] = useState('');
+  const [showModeSelector, setShowModeSelector] = useState(false);
 
   const numericValue = parseFloat(raw) || 0;
   const needsSplit   = numericValue > 0 && numericValue > settings.splitThreshold;
   const canProceed   = numericValue > 0;
+
+  const activeMode = settings.paymentMode || 'all';
+  let modeText = '—';
+  if (profile?.upiIds && profile.upiIds.length > 0) {
+    if (activeMode === 'all') {
+      modeText = `Round-Robin (${profile.upiIds.length} IDs)`;
+    } else {
+      modeText = profile.upiLabels?.[activeMode] || activeMode;
+    }
+  } else if (profile?.upiId) {
+    modeText = profile.upiId;
+  }
 
   const handleKey = (key: string) => {
     if (key === 'del') { setRaw(prev => prev.slice(0, -1)); return; }
@@ -48,13 +61,19 @@ export const HomePage: React.FC = () => {
       <div className="hero-header px-6 pt-16 pb-14 relative z-10 flex-shrink-0">
         <div className="flex items-center justify-between">
           {/* Merchant info */}
-          <div>
-            <p className="text-white/50 text-xs font-semibold uppercase tracking-wider mb-0.5">Merchant</p>
+          <div 
+            className="active:scale-95 transition-transform cursor-pointer"
+            onClick={() => { if (profile?.upiIds && profile.upiIds.length > 1) setShowModeSelector(true); }}
+          >
+            <div className="flex items-center gap-1.5 mb-0.5">
+              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Merchant</p>
+              {profile?.upiIds && profile.upiIds.length > 1 && (
+                <ChevronDown size={12} color="rgba(255,255,255,0.5)" strokeWidth={2.5} />
+              )}
+            </div>
             <p className="text-white font-bold text-base leading-tight">{profile?.businessName ?? 'Setup required'}</p>
-            <p className="text-white/50 text-xs mt-0.5">
-              {profile?.upiIds && profile.upiIds.length > 0 
-                ? `${profile.upiIds.length} Active UPI ID${profile.upiIds.length > 1 ? 's' : ''}` 
-                : (profile?.upiId ?? '—')}
+            <p className="text-white/50 text-xs mt-0.5 truncate max-w-[200px]">
+              {modeText}
             </p>
           </div>
 
@@ -179,6 +198,71 @@ export const HomePage: React.FC = () => {
           </button>
         </div>
       </div>
+
+      {/* Mode Selector Modal */}
+      {showModeSelector && (
+        <div className="fixed inset-0 z-[60] flex flex-col justify-end bg-black/60 backdrop-blur-sm fade-in">
+          <div className="bg-white dark:bg-[#1A1A2E] w-full rounded-t-3xl p-6 pb-10 slide-up flex flex-col gap-4 max-h-[80vh] overflow-hidden shadow-2xl">
+            <div className="flex justify-between items-center mb-2">
+              <div>
+                <h3 className="font-bold text-lg" style={{ color: 'var(--color-text-1)' }}>Payment Routing</h3>
+                <p className="text-xs" style={{ color: 'var(--color-text-3)' }}>Choose how incoming payments are routed</p>
+              </div>
+              <button 
+                onClick={() => setShowModeSelector(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-gray-800 active:scale-90 transition-transform"
+              >
+                <X size={16} style={{ color: 'var(--color-text-2)' }} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
+              {/* Round Robin Option */}
+              <button
+                onClick={() => { setSettings(s => ({ ...s, paymentMode: 'all' })); setShowModeSelector(false); }}
+                className="flex items-center justify-between p-4 rounded-2xl border transition-all text-left active:scale-[0.98]"
+                style={{
+                  borderColor: activeMode === 'all' ? 'var(--color-primary)' : 'var(--color-border-med)',
+                  background: activeMode === 'all' ? 'var(--color-primary-dim)' : 'transparent'
+                }}
+              >
+                <div>
+                  <p className="font-bold text-sm" style={{ color: activeMode === 'all' ? 'var(--color-primary)' : 'var(--color-text-1)' }}>
+                    Round-Robin All
+                  </p>
+                  <p className="text-xs mt-0.5" style={{ color: activeMode === 'all' ? 'var(--color-primary)' : 'var(--color-text-3)', opacity: 0.8 }}>
+                    Distribute evenly across {profile?.upiIds?.length} accounts
+                  </p>
+                </div>
+                {activeMode === 'all' && <Check size={18} color="var(--color-primary)" strokeWidth={2.5} />}
+              </button>
+              
+              {/* Specific Options */}
+              {profile?.upiIds?.map((id, index) => (
+                <button
+                  key={id}
+                  onClick={() => { setSettings(s => ({ ...s, paymentMode: id })); setShowModeSelector(false); }}
+                  className="flex items-center justify-between p-4 rounded-2xl border transition-all text-left active:scale-[0.98]"
+                  style={{
+                    borderColor: activeMode === id ? 'var(--color-primary)' : 'var(--color-border-med)',
+                    background: activeMode === id ? 'var(--color-primary-dim)' : 'transparent'
+                  }}
+                >
+                  <div className="min-w-0 pr-4">
+                    <p className="font-bold text-sm truncate" style={{ color: activeMode === id ? 'var(--color-primary)' : 'var(--color-text-1)' }}>
+                      {profile.upiLabels?.[id] || (index === 0 ? 'Primary Account' : id)}
+                    </p>
+                    <p className="text-xs mt-0.5 truncate" style={{ color: activeMode === id ? 'var(--color-primary)' : 'var(--color-text-3)', opacity: 0.8 }}>
+                      {id}
+                    </p>
+                  </div>
+                  {activeMode === id && <Check size={18} color="var(--color-primary)" strokeWidth={2.5} style={{ flexShrink: 0 }} />}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
