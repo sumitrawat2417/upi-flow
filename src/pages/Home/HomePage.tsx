@@ -20,16 +20,10 @@ export const HomePage: React.FC = () => {
   const needsSplit   = numericValue > 0 && numericValue > settings.splitThreshold;
   const canProceed   = numericValue > 0;
 
-  const activeMode = settings.paymentMode || 'all';
+  const activeMode = settings.paymentMode || profile?.upiIds?.[0] || profile?.upiId || '';
   let modeText = '—';
-  if (profile?.upiIds && profile.upiIds.length > 0) {
-    if (activeMode === 'all') {
-      modeText = `Round-Robin (${profile.upiIds.length} IDs)`;
-    } else {
-      modeText = profile.upiLabels?.[activeMode] || activeMode;
-    }
-  } else if (profile?.upiId) {
-    modeText = profile.upiId;
+  if (activeMode) {
+    modeText = profile?.upiLabels?.[activeMode] || activeMode;
   }
 
   const handleKey = (key: string) => {
@@ -217,26 +211,6 @@ export const HomePage: React.FC = () => {
             </div>
             
             <div className="flex-1 overflow-y-auto flex flex-col gap-2 pr-1">
-              {/* Round Robin Option */}
-              <button
-                onClick={() => { setSettings(s => ({ ...s, paymentMode: 'all' })); setShowModeSelector(false); }}
-                className="flex items-center justify-between p-4 rounded-2xl border transition-all text-left active:scale-[0.98]"
-                style={{
-                  borderColor: activeMode === 'all' ? 'var(--color-primary)' : 'var(--color-border-med)',
-                  background: activeMode === 'all' ? 'var(--color-primary-dim)' : 'transparent'
-                }}
-              >
-                <div>
-                  <p className="font-bold text-sm" style={{ color: activeMode === 'all' ? 'var(--color-primary)' : 'var(--color-text-1)' }}>
-                    Round-Robin All
-                  </p>
-                  <p className="text-xs mt-0.5" style={{ color: activeMode === 'all' ? 'var(--color-primary)' : 'var(--color-text-3)', opacity: 0.8 }}>
-                    Distribute evenly across {profile?.upiIds?.length} accounts
-                  </p>
-                </div>
-                {activeMode === 'all' && <Check size={18} color="var(--color-primary)" strokeWidth={2.5} />}
-              </button>
-              
               {/* Specific Options */}
               {profile?.upiIds?.map((id, index) => (
                 <button

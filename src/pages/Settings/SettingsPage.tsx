@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate }     from 'react-router-dom';
-import { ChevronLeft, Sun, Moon, Trash2, CreditCard, LayoutGrid, Plus, AtSign, ArrowRight, QrCode, Loader2, Camera, Image, X } from 'lucide-react';
+import { ChevronLeft, Sun, Moon, Trash2, CreditCard, LayoutGrid, Plus, AtSign, ArrowRight, QrCode, Loader2, Camera, Image, X, Check } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useTheme }        from '../../context/ThemeContext';
 import type { AppSettings, MerchantProfile } from '../../types';
@@ -257,35 +257,49 @@ export const SettingsPage: React.FC = () => {
         <p className="section-label px-1 mt-1">UPI IDs</p>
         <div className="card px-5 py-4 flex flex-col gap-3">
           <p className="text-xs leading-relaxed" style={{ color: 'var(--color-text-2)' }}>
-            Payments are automatically distributed round-robin across these IDs to prevent limits.
+            Tap an account to set it as active for receiving payments.
           </p>
           
-          <div className="flex flex-col">
-            {profile?.upiIds?.map((id, index) => (
-              <div key={id} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0 dark:border-gray-800">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="icon-circle w-8 h-8 flex-shrink-0" style={{ background: 'var(--color-surface-2)' }}>
-                    <AtSign size={14} strokeWidth={2} color="var(--color-text-2)" />
+          <div className="flex flex-col gap-2">
+            {profile?.upiIds?.map((id, index) => {
+              const isActive = (settings.paymentMode || profile.upiIds?.[0]) === id;
+              return (
+                <div 
+                  key={id} 
+                  onClick={() => setSettings(s => ({ ...s, paymentMode: id }))}
+                  className="flex items-center justify-between p-3 rounded-2xl border transition-all cursor-pointer active:scale-[0.98]"
+                  style={{
+                    borderColor: isActive ? 'var(--color-primary)' : 'var(--color-border-med)',
+                    background: isActive ? 'var(--color-primary-dim)' : 'transparent'
+                  }}
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="icon-circle w-8 h-8 flex-shrink-0" style={{ background: 'var(--color-surface-2)' }}>
+                      <AtSign size={14} strokeWidth={2} color="var(--color-text-2)" />
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-sm font-semibold truncate" style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-text-1)' }}>
+                        {profile.upiLabels?.[id] || (index === 0 ? 'Primary Account' : id)}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider mt-0.5 truncate" style={{ color: isActive ? 'var(--color-primary)' : 'var(--color-text-3)', opacity: isActive ? 0.8 : 1 }}>
+                        {index === 0 ? `PRIMARY • ${id}` : id}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-semibold truncate" style={{ color: 'var(--color-text-1)' }}>
-                      {profile.upiLabels?.[id] || (index === 0 ? 'Primary Account' : id)}
-                    </span>
-                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-0.5 truncate">
-                      {index === 0 ? `PRIMARY • ${id}` : id}
-                    </span>
+                  <div className="flex items-center gap-2">
+                    {isActive && <Check size={18} color="var(--color-primary)" strokeWidth={2.5} />}
+                    {profile.upiIds!.length > 1 && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); removeUpiId(id); }}
+                        className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-90 transition-all flex-shrink-0"
+                      >
+                        <Trash2 size={16} color="var(--color-danger)" />
+                      </button>
+                    )}
                   </div>
                 </div>
-                {profile.upiIds!.length > 1 && (
-                  <button 
-                    onClick={() => removeUpiId(id)}
-                    className="p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/20 active:scale-90 transition-all flex-shrink-0 ml-2"
-                  >
-                    <Trash2 size={16} color="var(--color-danger)" />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <button

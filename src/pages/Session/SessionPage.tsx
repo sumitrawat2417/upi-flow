@@ -263,6 +263,18 @@ export const SessionPage: React.FC = () => {
               <QRCodeSVG value={activePayment.upiUri} size={200} />
             </div>
 
+            {(() => {
+              const pa = new URLSearchParams(activePayment.upiUri.split('?')[1]).get('pa') || '';
+              const label = profile?.upiLabels?.[pa] || (pa === profile?.upiId ? 'Primary Account' : pa);
+              return (
+                <div className="flex flex-col items-center -mt-1 mb-1 bg-gray-50 dark:bg-gray-800/50 px-4 py-2 rounded-xl">
+                  <span className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: 'var(--color-text-3)' }}>Receiving Account</span>
+                  <p className="font-bold text-sm text-center" style={{ color: 'var(--color-text-1)' }}>{label}</p>
+                  {label !== pa && <p className="text-xs mt-0.5 font-medium text-center" style={{ color: 'var(--color-text-3)' }}>{pa}</p>}
+                </div>
+              );
+            })()}
+
             <p className="text-xs text-center leading-relaxed" style={{ color: 'var(--color-text-3)' }}>
               Show this QR. Confirm from your bank app, then tap below.
             </p>
