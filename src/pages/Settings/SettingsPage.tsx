@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate }     from 'react-router-dom';
-import { ChevronLeft, Sun, Moon, Trash2, CreditCard, LayoutGrid, Plus, AtSign, ArrowRight } from 'lucide-react';
+import { ChevronLeft, Sun, Moon, Trash2, CreditCard, LayoutGrid, Plus, AtSign, ArrowRight, QrCode, Loader2, Camera, Image, X } from 'lucide-react';
 import { useLocalStorage } from '../../hooks/useLocalStorage';
 import { useTheme }        from '../../context/ThemeContext';
 import type { AppSettings, MerchantProfile } from '../../types';
 import { QRCodeSVG } from 'qrcode.react';
+import QrScanner from 'qr-scanner';
 
 
 const THRESHOLDS = [1000, 2000, 5000, 10000];
@@ -23,6 +24,96 @@ export const SettingsPage: React.FC = () => {
   const [newUpiLabel, setNewUpiLabel] = useState('');
   const [upiError, setUpiError] = useState<string | undefined>();
   const [verifyNewUpiId, setVerifyNewUpiId] = useState<string | null>(null);
+
+  // Scanner State
+  const [isScanning, setIsScanning] = useState(false);
+  const [showScanMenu, setShowScanMenu] = useState(false);
+  const [showCamera, setShowCamera] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const qrScannerRef = useRef<QrScanner | null>(null);
+
+  const processScanResult = (text: string) => {
+    let parsedPa = '';
+    
+    try {
+      const url = new URL(text);
+      if (url.protocol === 'upi:') {
+        parsedPa = url.searchParams.get('pa') || '';
+      }
+    } catch {
+      if (text.includes('@')) parsedPa = text;
+    }
+    
+    if (parsedPa) {
+      setUpiError(undefined);
+      setNewUpiId(parsedPa);
+      return true;
+    } else {
+      setUpiError('Invalid QR code. Please scan a valid UPI QR.');
+      return false;
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsScanning(true);
+    try {
+      const result = await QrScanner.scanImage(file, { returnDetailedScanResult: true });
+      const text = typeof result === 'object' && result !== null && 'data' in result ? (result as any).data : result;
+      processScanResult(text);
+    } catch (err) {
+      console.error(err);
+      setUpiError('Could not detect QR code in image.');
+    } finally {
+      setIsScanning(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  useEffect(() => {
+    if (showCamera && videoRef.current) {
+      qrScannerRef.current = new QrScanner(
+        videoRef.current,
+        result => {
+          const text = typeof result === 'object' && result !== null && 'data' in result ? (result as any).data : result;
+          if (processScanResult(text)) {
+            closeCamera();
+          }
+        },
+        { 
+          returnDetailedScanResult: true,
+          highlightScanRegion: true,
+          highlightCodeOutline: true,
+        }
+      );
+      
+      qrScannerRef.current.start().catch((err) => {
+        console.error(err);
+        setUpiError('Camera access denied or unavailable.');
+        setShowCamera(false);
+      });
+    }
+
+    return () => {
+      if (qrScannerRef.current) {
+        qrScannerRef.current.stop();
+        qrScannerRef.current.destroy();
+        qrScannerRef.current = null;
+      }
+    };
+  }, [showCamera]);
+
+  const closeCamera = () => {
+    if (qrScannerRef.current) {
+      qrScannerRef.current.stop();
+      qrScannerRef.current.destroy();
+      qrScannerRef.current = null;
+    }
+    setShowCamera(false);
+  };
 
   const reset = () => {
     localStorage.clear();
@@ -72,6 +163,54 @@ export const SettingsPage: React.FC = () => {
 
   return (
     <div className="app-shell fade-in">
+      {/* Hidden file input for gallery */}
+      <input
+        type="file"
+        accept="image/*"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        className="hidden"
+        style={{ display: 'none' }}
+      />
+
+      {/* Live Camera Modal Overlay */}
+      {showCamera && (
+        <div className="fixed inset-0 z-[70] flex flex-col bg-black">
+          <div className="relative flex-1 flex flex-col">
+            <video 
+              ref={videoRef} 
+              className="absolute inset-0 w-full h-full object-cover" 
+            />
+            {/* Modal Header */}
+            <div className="absolute top-0 inset-x-0 p-5 flex justify-between items-center bg-gradient-to-b from-black/60 to-transparent z-10">
+              <p className="text-white font-bold tracking-wide">Scan UPI QR</p>
+              <button 
+                onClick={closeCamera}
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20 backdrop-blur-md active:scale-95 transition-transform"
+              >
+                <X color="white" strokeWidth={2.5} size={20} />
+              </button>
+            </div>
+            
+            {/* Scanning Guide Box */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="w-64 h-64 border-2 border-white/50 rounded-2xl relative">
+                <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-white rounded-tl-2xl"></div>
+                <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-white rounded-tr-2xl"></div>
+                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-white rounded-bl-2xl"></div>
+                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-white rounded-br-2xl"></div>
+              </div>
+            </div>
+            
+            <div className="absolute bottom-10 inset-x-0 text-center z-10">
+              <p className="text-white/80 text-sm bg-black/40 px-4 py-2 rounded-full inline-block backdrop-blur-md">
+                Point camera at a UPI QR code
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="hero-header px-5 pt-12 pb-8 relative z-10">
         <div className="flex items-center gap-3">
           <button
@@ -304,6 +443,54 @@ export const SettingsPage: React.FC = () => {
               </div>
               
               <div className="flex flex-col gap-1.5">
+                <div className="flex justify-between items-end mb-1">
+                  <span className="text-xs font-semibold" style={{ color: 'var(--color-text-2)' }}>UPI ID</span>
+                  
+                  <div className="relative">
+                    <button
+                      onClick={() => setShowScanMenu(!showScanMenu)}
+                      className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors active:scale-95 px-2 py-1 rounded-md"
+                      style={{ color: 'var(--color-primary)', background: 'var(--color-primary-dim)' }}
+                      type="button"
+                      disabled={isScanning || showCamera}
+                    >
+                      {isScanning ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <QrCode size={12} strokeWidth={2.5} />
+                      )}
+                      {isScanning ? 'Scanning...' : 'Scan Image'}
+                    </button>
+                    
+                    {showScanMenu && (
+                      <>
+                        <div 
+                          className="fixed inset-0 z-[60]" 
+                          onClick={() => setShowScanMenu(false)}
+                        />
+                        <div className="absolute right-0 bottom-full mb-1 w-36 bg-white rounded-xl shadow-lg border border-gray-100 py-1.5 z-[70] overflow-hidden fade-in origin-bottom-right dark:bg-[#1A1A2E] dark:border-gray-800">
+                          <button
+                            className="w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 active:bg-gray-100 transition-colors dark:hover:bg-[#222236] dark:text-gray-100"
+                            onClick={() => { setShowCamera(true); setShowScanMenu(false); }}
+                            type="button"
+                          >
+                            <Camera size={14} className="text-gray-500 dark:text-gray-400" />
+                            Use Camera
+                          </button>
+                          <button
+                            className="w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 hover:bg-gray-50 active:bg-gray-100 transition-colors dark:hover:bg-[#222236] dark:text-gray-100"
+                            onClick={() => { fileInputRef.current?.click(); setShowScanMenu(false); }}
+                            type="button"
+                          >
+                            <Image size={14} className="text-gray-500 dark:text-gray-400" />
+                            Upload Album
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 <div className="relative">
                   <span
                     className="absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
